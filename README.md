@@ -10,6 +10,6 @@ GNUplot: http://gnuplot.info/download.html
 How to build:
 
 * From QtCreator: just open GRABIM-CPP.pro
-* From terminal: g++ main.cpp matchingnetwork.cpp io.cpp -I<NLoptLibPath>include -L<NLoptLibPath>lib -lnlopt -lm -std=c++11
+* From terminal: g++ main.cpp matchingnetwork.cpp io.cpp -I(NLoptLibPath)include -L(NLoptLibPath)lib -lnlopt -lm -std=c++11
 
-<NLoptLibPath> is the directory where NLopt is installed (by default, /usr/local/)
+where (NLoptLibPath) is the directory where NLopt is installed (by default, /usr/local/)
