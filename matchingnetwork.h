@@ -44,6 +44,8 @@ public:
     double GetThreshold();
     int SetVerbose(bool);
     double CandidateEval(rowvec);
+    int SetNLoptAlg(nlopt::algorithm);
+    nlopt::algorithm GetNLoptAlg();
 
 private:
     DeviceData LoadS2PData(std::string);
@@ -62,6 +64,7 @@ private:
     std::string topology;
     int Grid_MaxIter;
     double MatchingThreshold;
+    nlopt::algorithm NLoptAlgo;
 };
 
 #endif // MATCHINGNETWORK_H
