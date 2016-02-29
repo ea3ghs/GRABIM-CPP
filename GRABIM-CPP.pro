@@ -7,10 +7,12 @@ INCLUDEPATH += /usr/local/include
 LIBS += -L/usr/local/lib -lnlopt
 
 SOURCES += main.cpp \
-    matchingnetwork.cpp
+    matchingnetwork.cpp \
+    io.cpp
 
 HEADERS += \
-    matchingnetwork.h
+    matchingnetwork.h \
+    io.h
 
 QMAKE_CXXFLAGS += -DHAVE_STD -DHAVE_NAMESPACES -lopt -lnewmat -lnlopt -lm -std=c++11 -pthread -DNDEBUG
 QMAKE_CXXFLAGS += -O2

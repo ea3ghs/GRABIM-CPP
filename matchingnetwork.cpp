@@ -349,6 +349,46 @@ GRABIM_Result MatchingNetwork::RunGRABIM()
     Res.x_nlopt = LocalOptimiser(Res.x_grid_search);
     Res.grid_val = CandidateEval(Res.x_grid_search);
     Res.nlopt_val = CandidateEval(Res.x_nlopt);
+    Res.ZS = ZS;
+    Res.ZL = ZL;
+    Res.f_analysis = f_analysis;
+
+    //Initialize S param vectors
+    Res.S11_gridsearch=cx_vec(f_analysis,f_analysis);
+    Res.S21_gridsearch=cx_vec(f_analysis,f_analysis);
+    Res.S12_gridsearch=cx_vec(f_analysis,f_analysis);
+    Res.S22_gridsearch=cx_vec(f_analysis,f_analysis);
+
+    Res.S11_nlopt=cx_vec(f_analysis,f_analysis);
+    Res.S21_nlopt=cx_vec(f_analysis,f_analysis);
+    Res.S12_nlopt=cx_vec(f_analysis,f_analysis);
+    Res.S22_nlopt=cx_vec(f_analysis,f_analysis);
+
+
+    //Generate S parameter results
+    cx_mat S_gridsearch, S_nlopt;
+    S_gridsearch << 1<<1<<endr << 1<<1<< endr;
+    S_nlopt << 1<<1<<endr << 1<<1<< endr;
+
+    for (int i = 0; i < f_analysis.n_rows; i++)
+    {
+        // Grid search
+        S_gridsearch = getSparams(Res.x_grid_search, ZS.at(i), ZL.at(i), f_analysis.at(i));
+        Res.S11_gridsearch.at(i) = S_gridsearch(0,0);
+        Res.S21_gridsearch.at(i) = S_gridsearch(1,0);
+        Res.S12_gridsearch.at(i) = S_gridsearch(0,1);
+        Res.S22_gridsearch.at(i) = S_gridsearch(1,1);
+
+        // NLopt
+        S_nlopt = getSparams(Res.x_nlopt, ZS.at(i), ZL.at(i), f_analysis.at(i));
+        Res.S11_nlopt.at(i) = S_nlopt(0,0);
+        Res.S21_nlopt.at(i) = S_nlopt(1,0);
+        Res.S12_nlopt.at(i) = S_nlopt(0,1);
+        Res.S22_nlopt.at(i) = S_nlopt(1,1);
+    }
+
+
+
     return Res;
 }
 

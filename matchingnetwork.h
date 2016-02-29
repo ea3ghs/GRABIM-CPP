@@ -7,6 +7,7 @@
 #include <queue>
 
 using namespace arma;
+using namespace std;
 
 const double c0 = 299792458;//Speed of light (m/s)
 
@@ -22,6 +23,10 @@ typedef struct GRABIM_Result {
     double grid_val;
     rowvec x_nlopt;
     double nlopt_val;
+    cx_vec ZS, ZL;
+    vec f_analysis;
+    cx_vec S11_gridsearch, S21_gridsearch, S12_gridsearch, S22_gridsearch;
+    cx_vec S11_nlopt, S21_nlopt, S12_nlopt, S22_nlopt;
 
 } GRABIM_Result;
 

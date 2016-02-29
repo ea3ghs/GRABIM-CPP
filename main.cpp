@@ -1,5 +1,6 @@
 #include <iostream>
 #include "matchingnetwork.h"
+#include "io.h"
 
 using namespace std;
 
@@ -44,6 +45,8 @@ int main()
     MatchingObject.SetThreshold(-30);
     MatchingObject.SetNLoptAlg(nlopt::algorithm::LN_NELDERMEAD);
     GRABIM_Result R = MatchingObject.RunGRABIM();
+    IO io;
+    io.exportGNUplot(R, "GRABIM.dat");
     std::cout << "GRID SEARCH: S11_max = "<< R.grid_val << "dB <= " << R.x_grid_search << std::endl;
     std::cout << "NLOPT: S11_max = "<< R.nlopt_val << "dB <= " <<  R.x_nlopt << std::endl;
 
