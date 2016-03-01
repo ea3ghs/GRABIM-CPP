@@ -30,7 +30,10 @@ typedef struct GRABIM_Result {
 
 } GRABIM_Result;
 
+enum ObjectiveFunction {NINF_S11dB, NINF_POWERTRANS};
 
+//Reference:
+// [1] Broadband direct-coupled and RF matching networks. Thomas R. Cuthbert, 1999
 class MatchingNetwork
 {
 public:
@@ -51,6 +54,8 @@ public:
     double CandidateEval(rowvec);
     int SetNLoptAlg(nlopt::algorithm);
     nlopt::algorithm GetNLoptAlg();
+    int SetObjectiveFunction(ObjectiveFunction);
+    ObjectiveFunction GetObjectiveFunction();
 
 private:
     DeviceData LoadS2PData(std::string);
@@ -58,7 +63,9 @@ private:
     rowvec LocalOptimiser(rowvec);
     int ResampleImpedances();
     cx_mat getSparams(rowvec, cx_double, cx_double, double);
+    cx_mat getABCDmatrix(rowvec, double);
     mat GeneratingMatrix(int);
+    double CalcInvPowerTransfer(cx_mat, cx_double, cx_double);
     rowvec x_ini;
     vec f_matching;
     cx_vec ZS, ZL;
@@ -67,9 +74,10 @@ private:
     vec f_analysis;
     bool verbose;
     std::string topology;
-    int Grid_MaxIter;
+    unsigned int Grid_MaxIter;
     double MatchingThreshold;
     nlopt::algorithm NLoptAlgo;
+    ObjectiveFunction ObjFun;
 };
 
 #endif // MATCHINGNETWORK_H

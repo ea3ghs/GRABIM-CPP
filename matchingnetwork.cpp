@@ -8,6 +8,7 @@ MatchingNetwork::MatchingNetwork()
 int MatchingNetwork::SetVerbose(bool vb)
 {
     verbose = vb;
+    return 0;
 }
 
 int MatchingNetwork::SetSourceImpedance(std::string sourcepath)
@@ -272,21 +273,34 @@ int MatchingNetwork::ResampleImpedances()
 
     //Now, it's needed to u-pdate the matching band according to f_analysis values
     f_matching = f_analysis.rows(index1, index2);
+    return 0;
 }
 
 
 
 cx_mat MatchingNetwork::getSparams(rowvec x, cx_double zs, cx_double zl, double f)
 {
+    cx_mat ABCD = getABCDmatrix(x, f);
+    cx_mat S;
+    S << -1 << -1 << endr << -1 << -1 << endr;
+    //Convert ABCD to S parameters
+    S(0,0) = (ABCD(0,0)*zl+ABCD(0,1)-ABCD(1,0)*conj(zs)*zl-ABCD(1,1)*conj(zs))/(ABCD(0,0)*zl+ABCD(0,1)+ABCD(1,0)*zs*zl+ABCD(1,1)*zs);
+    S(0,1) = (2.*(ABCD(0,0)*ABCD(1,1)-ABCD(0,1)*ABCD(1,0))*sqrt(real(zs)*real(zl)))/(ABCD(0,0)*zl+ABCD(0,1)+ABCD(1,0)*zs*zl+ABCD(1,1)*zs);
+    S(1,0) = (2.*sqrt(real(zs)*real(zl)))/(ABCD(0,0)*zl+ABCD(0,1)+ABCD(1,0)*zs*zl+ABCD(1,1)*zs);
+    S(1,1) = (-ABCD(0,0)*conj(zl)+ABCD(0,1)-ABCD(1,0)*conj(zl)*zs+ABCD(1,1)*zs)/(ABCD(0,0)*zl+ABCD(0,1)+ABCD(1,0)*zs*zl+ABCD(1,1)*zs);
+    return S;
+}
+
+cx_mat MatchingNetwork::getABCDmatrix(rowvec x, double f)
+{
     int element;
     double w = 2*datum::pi*f;
     double beta = w/c0;
     cx_double gamma = cx_double(0, beta);
-    cx_mat ABCD, ABCD_t, S;
+    cx_mat ABCD, ABCD_t;
     ABCD << 1 << 0 << endr << 0 << 1 << endr;
-    S << -1 << -1 << endr << -1 << -1 << endr;
 
-    int i, k;
+    unsigned int i, k;
 
     for (i = 0, k=0; i < topology.length(); i++, k++)
     {
@@ -310,18 +324,12 @@ cx_mat MatchingNetwork::getSparams(rowvec x, cx_double zs, cx_double zl, double 
         case 6: ABCD_t << 1. << 0 << endr << 1./(x.at(k)*tanh(gamma*x.at(k+1))) << 1. << endr;
             k++;
             break;
-        default: return S;
+        default: return -ABCD.eye();
         }
 
         ABCD = ABCD*ABCD_t;
     }
-
-    //Convert ABCD to S parameters
-    S(0,0) = (ABCD(0,0)*zl+ABCD(0,1)-ABCD(1,0)*conj(zs)*zl-ABCD(1,1)*conj(zs))/(ABCD(0,0)*zl+ABCD(0,1)+ABCD(1,0)*zs*zl+ABCD(1,1)*zs);
-    S(0,1) = (2.*(ABCD(0,0)*ABCD(1,1)-ABCD(0,1)*ABCD(1,0))*sqrt(real(zs)*real(zl)))/(ABCD(0,0)*zl+ABCD(0,1)+ABCD(1,0)*zs*zl+ABCD(1,1)*zs);
-    S(1,0) = (2.*sqrt(real(zs)*real(zl)))/(ABCD(0,0)*zl+ABCD(0,1)+ABCD(1,0)*zs*zl+ABCD(1,1)*zs);
-    S(1,1) = (-ABCD(0,0)*conj(zl)+ABCD(0,1)-ABCD(1,0)*conj(zl)*zs+ABCD(1,1)*zs)/(ABCD(0,0)*zl+ABCD(0,1)+ABCD(1,0)*zs*zl+ABCD(1,1)*zs);
-
+ return ABCD;
 }
 
 int MatchingNetwork::SetMaxIterGridSearch(int max_iter)
@@ -370,7 +378,7 @@ GRABIM_Result MatchingNetwork::RunGRABIM()
     S_gridsearch << 1<<1<<endr << 1<<1<< endr;
     S_nlopt << 1<<1<<endr << 1<<1<< endr;
 
-    for (int i = 0; i < f_analysis.n_rows; i++)
+    for (unsigned int i = 0; i < f_analysis.n_rows; i++)
     {
         // Grid search
         S_gridsearch = getSparams(Res.x_grid_search, ZS.at(i), ZL.at(i), f_analysis.at(i));
@@ -410,6 +418,29 @@ rowvec MatchingNetwork::GridSearch()
     mat C = GeneratingMatrix(dim);
     unsigned int niter = 0;
 
+
+    /*
+    //Initial guess. Sometimes, the initial point may be far away from the optimum, so it
+    // seems to be reasonable to pick a handful of random vectors nearby the inital point and
+    // choose the best one.
+
+    int N_initial_guess  = 100;
+    mat XKQ = ones(N_initial_guess, xk.n_cols);
+    vec FXK = ones(N_initial_guess);
+    for (int k = 0; k <N_initial_guess; k++)
+    {
+        XKQ.row(k) = xk %(randu(1, xk.n_cols)*3);
+        FXK.at(k) =CandidateEval(XKQ.row(k));
+    }
+    uvec v_find_guess = find(FXK < FXK.min()+1e-6);
+    int imin = v_find_guess.at(0);
+    if (FXK.min() < fxk)
+    {
+        xk = XKQ.row(imin);
+        fxk = CandidateEval(xk);
+    }*/
+
+    // Factorial search
     for (int i = 0; i<4; i++, niter++)
     {
         if ((best.min() < MatchingThreshold)&&(niter > Grid_MaxIter))
@@ -491,14 +522,24 @@ mat MatchingNetwork::GeneratingMatrix(int dim)
 
 double MatchingNetwork::CandidateEval(rowvec x)
 {
-    double S11_max = -1e3;
-    cx_mat S;
-    for (int i = 0; i < f_matching.n_rows; i++)
+    double fobj = -1e3;
+    cx_mat S, ABCD;
+    for (unsigned int i = 0; i < f_matching.n_rows; i++)
     {
-        S = getSparams(x, ZS_matching.at(i), ZL_matching.at(i), f_matching.at(i));
-        if (abs(S(0,0)) > S11_max) S11_max = abs(S(0,0));
+
+        if (ObjFun == ObjectiveFunction::NINF_S11dB)
+        {
+            S = getSparams(x, ZS_matching.at(i), ZL_matching.at(i), f_matching.at(i));
+            if (abs(S(0,0)) > fobj) fobj = abs(S(0,0));
+        }
+        if (ObjFun == ObjectiveFunction::NINF_POWERTRANS)
+        {
+           ABCD = getABCDmatrix(x, f_matching.at(i));
+           fobj = CalcInvPowerTransfer(ABCD, ZS_matching.at(i), ZL_matching.at(i));
+        }
     }
-    return 20*log10(S11_max);
+    if (ObjFun == ObjectiveFunction::NINF_S11dB)fobj = 20*log10(fobj);//|grad{log(x)}| > |grad{x}| when x < 1;
+    return fobj;
 }
 
 
@@ -518,7 +559,7 @@ double myfunc(const std::vector<double> &x, std::vector<double> &grad, void *n)
     M.SetMatchingBand(N->f_matching.min(), N->f_matching.max(), N->f_matching.n_rows);
     M.SetSourceImpedance(N->ZS_matching, N->f_matching);
     M.SetLoadImpedance(N->ZL_matching, N->f_matching);
-    for (int i = 0; i < x.size(); i++) x_.at(i) = x[i];
+    for (unsigned int i = 0; i < x.size(); i++) x_.at(i) = x[i];
 
     double eval = M.CandidateEval(x_);
     std::cout<< eval << " <= " << x_<< std::endl;
@@ -541,7 +582,7 @@ rowvec MatchingNetwork::LocalOptimiser(rowvec x_grid)
 
     //Bounds
     std::vector<double> lb(dim), ub(dim);
-    int i, k;
+    unsigned int i, k;
     for (i = 0, k=0; i < topology.length(); i++, k++)
     {
         int element = atoi(topology.substr(i,1).c_str());
@@ -611,4 +652,27 @@ int MatchingNetwork::SetNLoptAlg(nlopt::algorithm NLA)
 nlopt::algorithm MatchingNetwork::GetNLoptAlg()
 {
     return NLoptAlgo;
+}
+
+
+int MatchingNetwork::SetObjectiveFunction(ObjectiveFunction of)
+{
+  ObjFun = of;
+  return 0;
+}
+
+ObjectiveFunction MatchingNetwork::GetObjectiveFunction()
+{
+   return ObjFun;
+}
+
+// Inverse power transfer from ABCD matrix
+// [1] Eq (6.2.1), (6.2.2)
+double MatchingNetwork::CalcInvPowerTransfer(cx_mat ABCD, cx_double ZS, cx_double ZL)
+{
+   cx_double p = real(ZS)*real(ZL) - imag(ZS)*imag(ZL);
+   cx_double q = imag(ZS)*real(ZL) + imag(ZL)*real(ZS);
+   cx_double a = ABCD(0,0)*real(ZL) - ABCD(1,0)*q + ABCD(1,1)*real(ZS);
+   cx_double b = ABCD(0,1) + ABCD(1,0)*p + ABCD(1,1)*imag(ZS) + ABCD(0,0)*imag(ZL);
+   return abs((a*a + b*b)/(4*real(ZS)*real(ZL)));
 }

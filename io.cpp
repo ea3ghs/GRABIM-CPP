@@ -19,5 +19,8 @@ int IO::exportGNUplot(GRABIM_Result Res, string filepath)
                       << " " << 20*log10(abs(Res.S21_nlopt.at(i))) << endl;
     }
     GNUplotExport.close();
+    string command;
+    command = "gnuplot plotscript";
+    system(command.c_str());
     return 0;
 }
