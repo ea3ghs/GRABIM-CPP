@@ -1,11 +1,14 @@
 # GRABIM-CPP
 Grid search algorithm for wideband matching network synthesis + Local optimiser
 
+Reference:
+[1] Broadband direct-coupled and RF matching networks. Thomas R. Cuthbert, 1999
+
 Requirements:
 
-Armadillo: http://arma.sourceforge.net/download.html
-NLopt: http://ab-initio.mit.edu/wiki/index.php/NLopt
-GNUplot: http://gnuplot.info/download.html
+* Armadillo: http://arma.sourceforge.net/download.html
+* NLopt: http://ab-initio.mit.edu/wiki/index.php/NLopt
+* GNUplot: http://gnuplot.info/download.html
 
 How to build:
 
