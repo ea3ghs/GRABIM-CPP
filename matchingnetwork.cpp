@@ -134,36 +134,64 @@ DeviceData MatchingNetwork::LoadS2PData(std::string filepath)
 
     do
     {
-        if (line.at(0) == '!' || line.empty() || line.length() == 1 ) break;//Data end
+        //Remove consecutive repeated blank spaces and space at the beginning
+        for (int i = 0; i< line.length(); i++)
+        {
+            if (i == 0)//Remove first space
+            {
+                if(!line.substr(0,1).compare(" "))
+                {
+                    line.erase(0, 1);
+                    i--;
+                }
+                continue;
+            }
+            if ((line.at(i-1) == line.at(i))&&(!line.substr(i, 1).compare(" ")))
+            {
+                line.erase(i, 1);
+                i--;
+            }
+        }
+
+        if (line.empty()|| (line.length()==1))break;
+        if (line.at(0) == '!') continue;//Comment
+
         //Frequency
-        int index2 = line.find_first_not_of(" ");
-        int index1 = line.find_first_of(" ", index2+1);
-        frequency.push(atof(line.substr(0,index1).c_str()));
-        index2 = line.find_first_of(" ", index1+1);
-        S11M.push(atof(line.substr(index1,index2-index1).c_str()));
-
-        index1 = line.find_first_of(" ", index2+1);
-        S11A.push(atof(line.substr(index2,index1-index2).c_str()));
-
-        index2 = line.find_first_of(" ", index1+1);
-        S21M.push(atof(line.substr(index1,index2-index1).c_str()));
-
-        index1 = line.find_first_of(" ", index2+1);
-        S21A.push(atof(line.substr(index2,index1-index2).c_str()));
-
-        index2 = line.find_first_of(" ", index1+1);
-        S12M.push(atof(line.substr(index1,index2-index1).c_str()));
-
-        index1 = line.find_first_of(" ", index2+1);
-        S12A.push(atof(line.substr(index2,index1-index2).c_str()));
-
-        index2 = line.find_first_of(" ", index1+1);
-        S22M.push(atof(line.substr(index1,index2-index1).c_str()));
-
-        index1 = line.find_first_of(" ", index2+1);
-        S22A.push(atof(line.substr(index2,index1-index2).c_str()));
+        int index = line.find_first_of(" ");
+        frequency.push(atof(line.substr(0,index).c_str()));
+        line.erase(0, index+1);
 
 
+        index = line.find_first_of(" ");
+        S11M.push(atof(line.substr(0,index).c_str()));
+        line.erase(0, index+1);
+
+        index = line.find_first_of(" ");
+        S11A.push(atof(line.substr(0,index).c_str()));
+        line.erase(0, index+1);
+
+        index = line.find_first_of(" ");
+        S21M.push(atof(line.substr(0,index).c_str()));
+        line.erase(0, index+1);
+
+        index = line.find_first_of(" ");
+        S21A.push(atof(line.substr(0,index).c_str()));
+        line.erase(0, index+1);
+
+        index = line.find_first_of(" ");
+        S12M.push(atof(line.substr(0,index).c_str()));
+        line.erase(0, index+1);
+
+        index = line.find_first_of(" ");
+        S12A.push(atof(line.substr(0,index).c_str()));
+        line.erase(0, index+1);
+
+        index = line.find_first_of(" ");
+        S22M.push(atof(line.substr(0,index).c_str()));
+        line.erase(0, index+1);
+
+        index = line.find_first_of(" ");
+        S22A.push(atof(line.substr(0,index).c_str()));
         qsize++;
     }while (std::getline(s2pfile, line));
 
@@ -207,13 +235,11 @@ DeviceData MatchingNetwork::LoadS2PData(std::string filepath)
         phi = (datum::pi/180)*S22a;
         S(i, 3) = cx_double(S22m,0)*cx_double(cos(phi), sin(phi));
 
-
         cx_double K = cx_double(Zref,0)/((1.-S(i,0))*(1.-S(i,3))-S(i,1)*S(i,2));
-        Z(i, 0) = K*(1.+S(i, 0))*(1.-S(i,3))+S(i,1)*S(i,2);
-        Z(i, 1) = K*2.*S(i,2);
-        Z(i, 2) = K*2.*S(i,3);
-        Z(i, 3) = K*(1.-S(i, 0))*(1.+S(i,3))+S(i,1)*S(i,2);
-
+        Z(i, 0) = K*((1.+S(i, 0))*(1.-S(i,3))+S(i,1)*S(i,2));//Z11
+        Z(i, 1) = K*2.*S(i,1);//Z21
+        Z(i, 2) = K*2.*S(i,2);//Z12
+        Z(i, 3) = K*((1.-S(i, 0))*(1.+S(i,3))+S(i,1)*S(i,2));//Z22
 
     }
 
@@ -353,9 +379,112 @@ double MatchingNetwork::GetThreshold()
 GRABIM_Result MatchingNetwork::RunGRABIM()
 {
     GRABIM_Result Res;
-    Res.x_grid_search = GridSearch();
-    Res.x_nlopt = LocalOptimiser(Res.x_grid_search);
+
+    if (!topology.compare("-1"))//The user did not entered any specific network, so it seems
+    {//reasonable to try some typical wideband matching network
+        rowvec Vopt, Vaux;
+        string candidate;
+        double gridtest, opttopo;
+
+        topology = "313202";//PiCPiL
+        x_ini << 5e-12 << 5e-12 << 5e-12 << 5e-9 << 5e-9 << 5e-9;
+        Vaux = GridSearch();
+        gridtest = CandidateEval(Vaux);
+        candidate = topology;
+        opttopo = gridtest;
+        Vopt = Vaux;
+
+        topology = "202313";//PiLPiC
+        x_ini << 5e-9 << 5e-9 << 5e-9 << 5e-12 << 5e-12 << 5e-12;
+        Vaux = GridSearch();
+        gridtest = CandidateEval(Vaux);
+        if (gridtest < opttopo - 0.5)//It worths to change the topology if the new one improves the result significantly
+        {
+            candidate = topology;
+            opttopo = gridtest;
+            Vopt = Vaux;
+        }
+
+
+        topology = "444";//3 cascaded lambda/4 sections
+        double meanZS = mean(real(ZS_matching));
+        double meanZL = mean(real(ZL_matching));
+        double lambda4 = c0/(4.*mean(f_matching));
+
+        if (meanZS < meanZL)
+        {
+               x_ini << 1.1*meanZS << lambda4<< .5*(meanZS+meanZL) << lambda4 << .9*meanZL << lambda4;
+        }
+        else
+        {
+                x_ini << 0.9*meanZS << lambda4<< .5*(meanZS+meanZL) << lambda4 << 1.1*meanZL << lambda4;
+        }
+        cout << x_ini << endl;
+        Vaux = GridSearch();
+        gridtest = CandidateEval(Vaux);
+        if (gridtest < opttopo - 0.5)
+        {
+            candidate = topology;
+            opttopo = gridtest;
+            Vopt = Vaux;
+        }
+
+        topology = "303030";
+        x_ini << 5e-12 << 5e-9 << 5e-12 << 5e-9 << 5e-12 << 5e-9;
+        Vaux = GridSearch();
+        gridtest = CandidateEval(Vaux);
+        if (gridtest < opttopo - 0.5)
+        {
+            candidate = topology;
+            opttopo = gridtest;
+            Vopt = Vaux;
+        }
+        topology = "01230123";//BPP3
+        x_ini << 5e-9 << 5e-12 << 5e-9 << 5e-12<< 5e-9 << 5e-12<< 5e-9 << 5e-12;
+        Vaux = GridSearch();
+        gridtest = CandidateEval(Vaux);
+        if (gridtest < opttopo - 0.5)
+        {
+            candidate = topology;
+            opttopo = gridtest;
+            Vopt = Vaux;
+        }
+
+        topology = "23012301";//BPS3
+        x_ini << 5e-9 << 5e-12 << 5e-9 << 5e-12<< 5e-9 << 5e-12<< 5e-9 << 5e-12;
+        Vaux = GridSearch();
+        gridtest = CandidateEval(Vaux);
+        if (gridtest < opttopo - 1)
+        {
+            candidate = topology;
+            opttopo = gridtest;
+            Vopt = Vaux;
+        }
+
+
+        topology = "131020131";
+        x_ini << 5e-12 << 5e-12 << 5e-12 << 5e-9 << 5e-9 << 5e-9 << 5e-12 << 5e-12 << 5e-12;
+        Vaux = GridSearch();
+        gridtest = CandidateEval(Vaux);
+        if (gridtest < opttopo - 1)
+        {
+            candidate = topology;
+            opttopo = gridtest;
+            Vopt = Vaux;
+        }
+
+
+        topology = candidate;
+        Res.x_grid_search = Vopt;
+
+    }
+    else
+    {
+       Res.x_grid_search = GridSearch();
+    }
+
     Res.grid_val = CandidateEval(Res.x_grid_search);
+    Res.x_nlopt = LocalOptimiser(Res.x_grid_search);
     Res.nlopt_val = CandidateEval(Res.x_nlopt);
     Res.ZS = ZS;
     Res.ZL = ZL;
@@ -568,7 +697,7 @@ double myfunc(const std::vector<double> &x, std::vector<double> &grad, void *n)
 
 rowvec MatchingNetwork::LocalOptimiser(rowvec x_grid)
 {
-    int dim = x_ini.n_cols;
+    int dim = x_grid.n_cols;
     nlopt::opt opt(NLoptAlgo, dim);
     NLoptData n;
     n.f_matching = f_matching;
@@ -606,6 +735,7 @@ rowvec MatchingNetwork::LocalOptimiser(rowvec x_grid)
     std::vector<double> x(dim);
     for (int i = 0; i < dim; i++)x[i] = x_grid.at(i);
     double minf;
+
     nlopt::result result = opt.optimize(x, minf);
     std::cout << "NLopt status: " << std::endl;
 
