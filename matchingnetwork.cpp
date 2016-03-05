@@ -386,6 +386,7 @@ GRABIM_Result MatchingNetwork::RunGRABIM()
         string candidate;
         double gridtest, opttopo;
 
+        cout << "Grid search result for some common networks..." << endl;
         topology = "313202";//PiCPiL
         x_ini << 5e-12 << 5e-12 << 5e-12 << 5e-9 << 5e-9 << 5e-9;
         Vaux = GridSearch();
@@ -393,18 +394,20 @@ GRABIM_Result MatchingNetwork::RunGRABIM()
         candidate = topology;
         opttopo = gridtest;
         Vopt = Vaux;
+        cout << "PiCPiL: " <<  gridtest << endl;
+
 
         topology = "202313";//PiLPiC
         x_ini << 5e-9 << 5e-9 << 5e-9 << 5e-12 << 5e-12 << 5e-12;
         Vaux = GridSearch();
         gridtest = CandidateEval(Vaux);
+        cout << "PiLPiC: " <<  gridtest << endl;
         if (gridtest < opttopo - 0.5)//It worths to change the topology if the new one improves the result significantly
         {
             candidate = topology;
             opttopo = gridtest;
             Vopt = Vaux;
         }
-
 
         topology = "444";//3 cascaded lambda/4 sections
         double meanZS = mean(real(ZS_matching));
@@ -419,9 +422,9 @@ GRABIM_Result MatchingNetwork::RunGRABIM()
         {
                 x_ini << 0.9*meanZS << lambda4<< .5*(meanZS+meanZL) << lambda4 << 1.1*meanZL << lambda4;
         }
-        cout << x_ini << endl;
         Vaux = GridSearch();
         gridtest = CandidateEval(Vaux);
+        cout << "3-sections lambda/4: " <<  gridtest << endl;
         if (gridtest < opttopo - 0.5)
         {
             candidate = topology;
@@ -429,20 +432,52 @@ GRABIM_Result MatchingNetwork::RunGRABIM()
             Vopt = Vaux;
         }
 
-        topology = "303030";
-        x_ini << 5e-12 << 5e-9 << 5e-12 << 5e-9 << 5e-12 << 5e-9;
+
+        topology = "020313";
+        x_ini << 5e-9 << 5e-9 << 5e-9 << 5e-12 << 5e-12 << 5e-12;
         Vaux = GridSearch();
         gridtest = CandidateEval(Vaux);
+        cout << "TeeLPiC: " <<  gridtest << endl;
         if (gridtest < opttopo - 0.5)
         {
             candidate = topology;
             opttopo = gridtest;
             Vopt = Vaux;
         }
+
+
+
+
+        topology = "03030";
+        x_ini << 5e-9 << 5e-12 << 5e-9 << 5e-12 << 5e-9;
+        Vaux = GridSearch();
+        gridtest = CandidateEval(Vaux);
+        cout << "Lowpass LC ladder: " <<  gridtest << endl;
+        if (gridtest < opttopo - 0.5)
+        {
+            candidate = topology;
+            opttopo = gridtest;
+            Vopt = Vaux;
+        }
+
+        topology = "43434";
+        x_ini << 75 << lambda4 << 5e-12 << 75 << lambda4  << 5e-12 << 75 << lambda4 ;
+        Vaux = GridSearch();
+        gridtest = CandidateEval(Vaux);
+        cout << "Lowpass TL-C ladder: " <<  gridtest << endl;
+        if (gridtest < opttopo - 0.5)
+        {
+            candidate = topology;
+            opttopo = gridtest;
+            Vopt = Vaux;
+        }
+
+
         topology = "01230123";//BPP3
         x_ini << 5e-9 << 5e-12 << 5e-9 << 5e-12<< 5e-9 << 5e-12<< 5e-9 << 5e-12;
         Vaux = GridSearch();
         gridtest = CandidateEval(Vaux);
+        cout << "BPP3: " <<  gridtest << endl;
         if (gridtest < opttopo - 0.5)
         {
             candidate = topology;
@@ -454,6 +489,7 @@ GRABIM_Result MatchingNetwork::RunGRABIM()
         x_ini << 5e-9 << 5e-12 << 5e-9 << 5e-12<< 5e-9 << 5e-12<< 5e-9 << 5e-12;
         Vaux = GridSearch();
         gridtest = CandidateEval(Vaux);
+        cout << "BPS3: " <<  gridtest << endl;
         if (gridtest < opttopo - 1)
         {
             candidate = topology;
@@ -466,6 +502,7 @@ GRABIM_Result MatchingNetwork::RunGRABIM()
         x_ini << 5e-12 << 5e-12 << 5e-12 << 5e-9 << 5e-9 << 5e-9 << 5e-12 << 5e-12 << 5e-12;
         Vaux = GridSearch();
         gridtest = CandidateEval(Vaux);
+        cout << "TeeCTeeLTeeC: " <<  gridtest << endl;
         if (gridtest < opttopo - 1)
         {
             candidate = topology;
@@ -632,7 +669,6 @@ rowvec MatchingNetwork::GridSearch()
 
         }
     }
-    std::cout << best_candidate << std::endl;
     return xk;
 }
 
@@ -676,6 +712,7 @@ typedef struct NLoptData {
     vec f_matching;
     cx_vec ZS_matching, ZL_matching;
     std::string topology;
+    ObjectiveFunction objf;
 
 } NLoptData;
 
@@ -688,6 +725,7 @@ double myfunc(const std::vector<double> &x, std::vector<double> &grad, void *n)
     M.SetMatchingBand(N->f_matching.min(), N->f_matching.max(), N->f_matching.n_rows);
     M.SetSourceImpedance(N->ZS_matching, N->f_matching);
     M.SetLoadImpedance(N->ZL_matching, N->f_matching);
+    M.SetObjectiveFunction(N->objf);
     for (unsigned int i = 0; i < x.size(); i++) x_.at(i) = x[i];
 
     double eval = M.CandidateEval(x_);
@@ -704,6 +742,7 @@ rowvec MatchingNetwork::LocalOptimiser(rowvec x_grid)
     n.topology = topology;
     n.ZL_matching = ZL_matching;
     n.ZS_matching = ZS_matching;
+    n.objf = ObjFun;
     opt.set_min_objective(myfunc, &n);
     opt.set_stopval(this->GetThreshold()-10);
     opt.set_maxeval(1e6);
