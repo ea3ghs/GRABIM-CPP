@@ -10,7 +10,7 @@ class IO
 {
 public:
     IO();
-    int exportGNUplot(GRABIM_Result, string);
+    int exportGNUplot(GRABIM_Result, string, int);
 };
 
 #endif // IO_H

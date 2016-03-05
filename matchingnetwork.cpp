@@ -775,6 +775,7 @@ rowvec MatchingNetwork::LocalOptimiser(rowvec x_grid)
     for (int i = 0; i < dim; i++)x[i] = x_grid.at(i);
     double minf;
 
+    cout << endl << "Local optimiser output:" << endl;
     nlopt::result result = opt.optimize(x, minf);
     std::cout << "NLopt status: " << std::endl;
 

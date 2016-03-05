@@ -25,48 +25,47 @@ int main(int argc, char *argv[])
     std::string loadfile;
     MatchingObject.SetTopology("-1");
     cx_double ZS, ZL;
+    int plot = 1;
+    string output_data = "GRABIM.dat";
 
     vec freq = linspace(5e8, 10e9, 200);//Set the frequency vector por plotting the final results
 
     int N = 20;//Number of samples to match in the matching band
 
-    // SOURCE, LOAD IMPEDANCES AND MATCHING SETTINGS
-    if (argc == 5)
+    // SETTINGS
+
+    if (argc == 9)
     {
-       MatchingObject.SetMatchingBand(atof(argv[3]), atof(argv[4]), N);
-       ZS = check_string(argv[1]);
-       ZL = check_string(argv[2]);
-       if(ZS.real() == -1) MatchingObject.SetSourceImpedance(argv[1]);
-       if(ZL.real() == -1) MatchingObject.SetLoadImpedance(argv[2]);
-       MatchingObject.SetNLoptAlg(nlopt::LN_NELDERMEAD);
+        MatchingObject.SetMatchingBand(atof(argv[3]), atof(argv[4]), N);
+        ZS = check_string(argv[1]);
+        ZL = check_string(argv[2]);
+        if(ZS.real() == -1) MatchingObject.SetSourceImpedance(argv[1]);
+        if(ZL.real() == -1) MatchingObject.SetLoadImpedance(argv[2]);
+        MatchingObject.SetTopology(argv[5]);
+
+        string fifth_arg = argv[6];
+        //The 5th argument is the NLopt algorithm
+        if (fifth_arg.compare("NLOPT_LN_PRAXIS")) MatchingObject.SetNLoptAlg(nlopt::LN_PRAXIS);
+        else if (fifth_arg.compare("NLOPT_LN_NELDERMEAD")) MatchingObject.SetNLoptAlg(nlopt::LN_NELDERMEAD);
+        else if (fifth_arg.compare("NLOPT_LN_SBPLX")) MatchingObject.SetNLoptAlg(nlopt::LN_SBPLX);
+        else if (fifth_arg.compare("NLOPT_LN_COBYLA")) MatchingObject.SetNLoptAlg(nlopt::LN_COBYLA);
+        else if (fifth_arg.compare("NLOPT_LN_BOBYQA")) MatchingObject.SetNLoptAlg(nlopt::LN_BOBYQA);
+        else if (fifth_arg.compare("NLOPT_LN_AUGLAG")) MatchingObject.SetNLoptAlg(nlopt::LN_AUGLAG);
+        //GLOBAL OPT ALGORITHMS
+        else if (fifth_arg.compare("NLOPT_GN_ESCH")) MatchingObject.SetNLoptAlg(nlopt::GN_ESCH);
+        else if (fifth_arg.compare("NLOPT_GN_ISRES")) MatchingObject.SetNLoptAlg(nlopt::GN_ISRES);
+        else if (fifth_arg.compare("NLOPT_GD_STOGO")) MatchingObject.SetNLoptAlg(nlopt::GD_STOGO);
+
+        plot = atoi(argv[7]);//Defines whether to display results or not
+        output_data = argv[8];
     }
-    if (argc == 6)
+    else
     {
-       MatchingObject.SetMatchingBand(atof(argv[3]), atof(argv[4]), N);
-       ZS = check_string(argv[1]);
-       ZL = check_string(argv[2]);
-       if(ZS.real() == -1) MatchingObject.SetSourceImpedance(argv[1]);
-       if(ZL.real() == -1) MatchingObject.SetLoadImpedance(argv[2]);
-       string fifth_arg = argv[5];
-       if(fifth_arg.substr(0,2).compare("NL"))
-       {
-           MatchingObject.SetTopology(argv[5]);
-       }
-       else
-       {
-           //The 5th argument is the NLopt algorithm
-           if (fifth_arg.compare("NLOPT_LN_PRAXIS")) MatchingObject.SetNLoptAlg(nlopt::LN_PRAXIS);
-           else if (fifth_arg.compare("NLOPT_LN_NELDERMEAD")) MatchingObject.SetNLoptAlg(nlopt::LN_NELDERMEAD);
-           else if (fifth_arg.compare("NLOPT_LN_SBPLX")) MatchingObject.SetNLoptAlg(nlopt::LN_SBPLX);
-           else if (fifth_arg.compare("NLOPT_LN_NELDERMEAD")) MatchingObject.SetNLoptAlg(nlopt::LN_COBYLA);
-           else if (fifth_arg.compare("NLOPT_LN_NELDERMEAD")) MatchingObject.SetNLoptAlg(nlopt::LN_BOBYQA);
-           else if (fifth_arg.compare("NLOPT_LN_NELDERMEAD")) MatchingObject.SetNLoptAlg(nlopt::LN_AUGLAG);
-           //GLOBAL OPT ALGORITHMS
-           else if (fifth_arg.compare("NLOPT_LN_NELDERMEAD")) MatchingObject.SetNLoptAlg(nlopt::GN_ESCH);
-           else if (fifth_arg.compare("NLOPT_LN_NELDERMEAD")) MatchingObject.SetNLoptAlg(nlopt::GN_ISRES);
-           else if (fifth_arg.compare("NLOPT_LN_NELDERMEAD")) MatchingObject.SetNLoptAlg(nlopt::GD_STOGO);
-       }
+        cout << "Invalid arguments:" << endl;
+        cout << "./GRABIM-CPP <source-impedance> <load-impedance> >topology> <NL-algorithm> <enable-display> <output-data-file>";
+        return -1;
     }
+
 
 
     ///// MATCHING SETTINGS ////////
@@ -96,7 +95,7 @@ int main(int argc, char *argv[])
     MatchingObject.SetObjectiveFunction(ObjectiveFunction::NINF_S11dB);
     GRABIM_Result R = MatchingObject.RunGRABIM();
     IO io;
-    io.exportGNUplot(R, "GRABIM.dat");
+    io.exportGNUplot(R, output_data, plot);
     std::cout << "GRID SEARCH: S11_max = "<< R.grid_val << "dB <= " << R.x_grid_search << std::endl;
     std::cout << "NLOPT: S11_max = "<< R.nlopt_val << "dB <= " <<  R.x_nlopt << std::endl;
 
