@@ -39,3 +39,14 @@ where:
 
 By default, if no topology is specified (or topology = "-1") the program tries a few well known structures for wideband matching.
 
+Examples:
+
+./GRABIM-CPP 75+j10 13+j30 2e9 4e9 -1 NLOPT_LN_NELDERMEAD 1 test1_Nelder
+./GRABIM-CPP 10+j10 20-j30 1e9 4e9 -1 NLOPT_LN_NELDERMEAD 1 test2_Nelder
+./GRABIM-CPP 10-j10 50+j0 5e9 7e9 -1 NLOPT_LN_SBPLX 1 test1_Subplex
+
+Remember to modify 'plotscript' acordingly!!
+
+
+
+

@@ -135,7 +135,7 @@ DeviceData MatchingNetwork::LoadS2PData(std::string filepath)
     do
     {
         //Remove consecutive repeated blank spaces and space at the beginning
-        for (int i = 0; i< line.length(); i++)
+        for (unsigned int i = 0; i< line.length(); i++)
         {
             if (i == 0)//Remove first space
             {
@@ -394,14 +394,14 @@ GRABIM_Result MatchingNetwork::RunGRABIM()
         candidate = topology;
         opttopo = gridtest;
         Vopt = Vaux;
-        cout << "PiCPiL: " <<  gridtest << endl;
+        cout << "PiCPiL: S11_min = " <<  gridtest << " dB" << endl;
 
 
         topology = "202313";//PiLPiC
         x_ini << 5e-9 << 5e-9 << 5e-9 << 5e-12 << 5e-12 << 5e-12;
         Vaux = GridSearch();
         gridtest = CandidateEval(Vaux);
-        cout << "PiLPiC: " <<  gridtest << endl;
+        cout << "PiLPiC: S11_min = " <<  gridtest << " dB" << endl;
         if (gridtest < opttopo - 0.5)//It worths to change the topology if the new one improves the result significantly
         {
             candidate = topology;
@@ -424,7 +424,7 @@ GRABIM_Result MatchingNetwork::RunGRABIM()
         }
         Vaux = GridSearch();
         gridtest = CandidateEval(Vaux);
-        cout << "3-sections lambda/4: " <<  gridtest << endl;
+        cout << "3-sections lambda/4: S11_min = " <<  gridtest << " dB" << endl;
         if (gridtest < opttopo - 0.5)
         {
             candidate = topology;
@@ -437,7 +437,7 @@ GRABIM_Result MatchingNetwork::RunGRABIM()
         x_ini << 5e-9 << 5e-9 << 5e-9 << 5e-12 << 5e-12 << 5e-12;
         Vaux = GridSearch();
         gridtest = CandidateEval(Vaux);
-        cout << "TeeLPiC: " <<  gridtest << endl;
+        cout << "TeeLPiC: S11_min = " <<  gridtest << " dB" << endl;
         if (gridtest < opttopo - 0.5)
         {
             candidate = topology;
@@ -452,7 +452,7 @@ GRABIM_Result MatchingNetwork::RunGRABIM()
         x_ini << 5e-9 << 5e-12 << 5e-9 << 5e-12 << 5e-9;
         Vaux = GridSearch();
         gridtest = CandidateEval(Vaux);
-        cout << "Lowpass LC ladder: " <<  gridtest << endl;
+        cout << "Lowpass LC ladder: S11_min = " <<  gridtest << " dB" << endl;
         if (gridtest < opttopo - 0.5)
         {
             candidate = topology;
@@ -464,7 +464,7 @@ GRABIM_Result MatchingNetwork::RunGRABIM()
         x_ini << 75 << lambda4 << 5e-12 << 75 << lambda4  << 5e-12 << 75 << lambda4 ;
         Vaux = GridSearch();
         gridtest = CandidateEval(Vaux);
-        cout << "Lowpass TL-C ladder: " <<  gridtest << endl;
+        cout << "Lowpass TL-C ladder: S11_min = " <<  gridtest << " dB" << endl;
         if (gridtest < opttopo - 0.5)
         {
             candidate = topology;
@@ -477,7 +477,7 @@ GRABIM_Result MatchingNetwork::RunGRABIM()
         x_ini << 5e-9 << 5e-12 << 5e-9 << 5e-12<< 5e-9 << 5e-12<< 5e-9 << 5e-12;
         Vaux = GridSearch();
         gridtest = CandidateEval(Vaux);
-        cout << "BPP3: " <<  gridtest << endl;
+        cout << "BPP3: S11_min = " <<  gridtest << " dB" << endl;
         if (gridtest < opttopo - 0.5)
         {
             candidate = topology;
@@ -489,7 +489,7 @@ GRABIM_Result MatchingNetwork::RunGRABIM()
         x_ini << 5e-9 << 5e-12 << 5e-9 << 5e-12<< 5e-9 << 5e-12<< 5e-9 << 5e-12;
         Vaux = GridSearch();
         gridtest = CandidateEval(Vaux);
-        cout << "BPS3: " <<  gridtest << endl;
+        cout << "BPS3: S11_min = " <<  gridtest << " dB" << endl;
         if (gridtest < opttopo - 1)
         {
             candidate = topology;
@@ -502,7 +502,7 @@ GRABIM_Result MatchingNetwork::RunGRABIM()
         x_ini << 5e-12 << 5e-12 << 5e-12 << 5e-9 << 5e-9 << 5e-9 << 5e-12 << 5e-12 << 5e-12;
         Vaux = GridSearch();
         gridtest = CandidateEval(Vaux);
-        cout << "TeeCTeeLTeeC: " <<  gridtest << endl;
+        cout << "TeeCTeeLTeeC: S11_min = " <<  gridtest << " dB" << endl;
         if (gridtest < opttopo - 1)
         {
             candidate = topology;
@@ -768,8 +768,8 @@ rowvec MatchingNetwork::LocalOptimiser(rowvec x_grid)
     }
 
 
-    opt.set_lower_bounds(lb);
-    opt.set_upper_bounds(ub);
+   // opt.set_lower_bounds(lb);
+   // opt.set_upper_bounds(ub);
 
     std::vector<double> x(dim);
     for (int i = 0; i < dim; i++)x[i] = x_grid.at(i);

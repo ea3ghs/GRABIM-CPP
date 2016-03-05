@@ -8,10 +8,12 @@ cx_double check_string(char *arg)
 {
     string arg_str = arg;
     int index = arg_str.find_first_of("j");
+    int sign = 1;
     if (index != -1)//Then it is a single impedance
     {
         double zreal = atof(arg_str.substr(0, index-1).c_str());
-        double zimag = atof(arg_str.substr(index+1).c_str());
+        if (!arg_str.substr(index-1, 1).compare("-")) sign = -1;
+        double zimag = sign*atof(arg_str.substr(index+1).c_str());
         return cx_double(zreal, zimag);
     }
     else return cx_double(-1, -1);
