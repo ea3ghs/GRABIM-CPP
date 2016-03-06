@@ -20,6 +20,23 @@ int IO::exportGNUplot(GRABIM_Result Res, string filepath, int plot)
     }
     GNUplotExport.close();
 
+    //Update plotscript
+    ifstream plotscriptfile("plotscript");
+    if (!plotscriptfile.is_open())
+    {
+      cout << "Something went wrong with file export..." << endl;
+      return -1;
+    }
+    string s = "source = \"" + filepath + "\"\n", line;
+    getline(plotscriptfile, line);
+    while (getline(plotscriptfile, line))s+=line+"\n";
+    plotscriptfile.close();
+
+    ofstream plotscript_write("plotscript");
+    plotscript_write << s;
+    plotscript_write.flush();
+    plotscript_write.close();
+
     if (plot)//Display the result using gnuplot
     {
       string command;

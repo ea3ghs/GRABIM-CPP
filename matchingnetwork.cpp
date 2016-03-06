@@ -379,7 +379,7 @@ double MatchingNetwork::GetThreshold()
 GRABIM_Result MatchingNetwork::RunGRABIM()
 {
     GRABIM_Result Res;
-
+    double lambda4 = c0/(4.*mean(f_matching));
     if (!topology.compare("-1"))//The user did not entered any specific network, so it seems
     {//reasonable to try some typical wideband matching network
         rowvec Vopt, Vaux;
@@ -412,7 +412,6 @@ GRABIM_Result MatchingNetwork::RunGRABIM()
         topology = "444";//3 cascaded lambda/4 sections
         double meanZS = mean(real(ZS_matching));
         double meanZL = mean(real(ZL_matching));
-        double lambda4 = c0/(4.*mean(f_matching));
 
         if (meanZS < meanZL)
         {
@@ -490,7 +489,7 @@ GRABIM_Result MatchingNetwork::RunGRABIM()
         Vaux = GridSearch();
         gridtest = CandidateEval(Vaux);
         cout << "BPS3: S11_min = " <<  gridtest << " dB" << endl;
-        if (gridtest < opttopo - 1)
+        if (gridtest < opttopo - .5)
         {
             candidate = topology;
             opttopo = gridtest;
@@ -503,7 +502,7 @@ GRABIM_Result MatchingNetwork::RunGRABIM()
         Vaux = GridSearch();
         gridtest = CandidateEval(Vaux);
         cout << "TeeCTeeLTeeC: S11_min = " <<  gridtest << " dB" << endl;
-        if (gridtest < opttopo - 1)
+        if (gridtest < opttopo - .5)
         {
             candidate = topology;
             opttopo = gridtest;
@@ -517,6 +516,19 @@ GRABIM_Result MatchingNetwork::RunGRABIM()
     }
     else
     {
+       queue <double> XINI;
+       for (unsigned int i = 0; i< topology.size();i++)
+       {
+           if ((!topology.substr(i,1).compare("0"))||(!topology.substr(i,1).compare("2"))) XINI.push(1e-9);
+           if ((!topology.substr(i,1).compare("1"))||(!topology.substr(i,1).compare("3"))) XINI.push(1e-12);
+           if ((!topology.substr(i,1).compare("4"))||(!topology.substr(i,1).compare("5"))||(!topology.substr(i,1).compare("6")))XINI.push(100),XINI.push(lambda4);
+       }
+       x_ini = ones(1, XINI.size());
+       for (unsigned int i = 0; i < x_ini.size();i++)
+       {
+           x_ini.at(i) = XINI.front();
+           XINI.pop();
+       }
        Res.x_grid_search = GridSearch();
     }
 
