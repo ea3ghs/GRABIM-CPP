@@ -23,8 +23,6 @@ int main(int argc, char *argv[])
 {
     MatchingNetwork MatchingObject;
 
-    std::string sourcefile;
-    std::string loadfile;
     MatchingObject.SetTopology("-1");
     cx_double ZS, ZL;
     int plot = 1;

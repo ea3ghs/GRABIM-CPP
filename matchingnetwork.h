@@ -66,6 +66,7 @@ private:
     cx_mat getABCDmatrix(rowvec, double);
     mat GeneratingMatrix(int);
     double CalcInvPowerTransfer(cx_mat, cx_double, cx_double);
+    cx_mat precomputedTopologies();
     rowvec x_ini;
     vec f_matching;
     cx_vec ZS, ZL;

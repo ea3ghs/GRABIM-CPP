@@ -858,3 +858,10 @@ double MatchingNetwork::CalcInvPowerTransfer(cx_mat ABCD, cx_double ZS, cx_doubl
    cx_double b = ABCD(0,1) + ABCD(1,0)*p + ABCD(1,1)*imag(ZS) + ABCD(0,0)*imag(ZL);
    return abs((a*a + b*b)/(4*real(ZS)*real(ZL)));
 }
+
+
+
+cx_mat MatchingNetwork::precomputedTopologies()
+{
+
+}
