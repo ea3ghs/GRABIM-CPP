@@ -56,7 +56,7 @@ tu(t,2) linecolor rgb "black" linewidth 0.2 ,tv(t,2) linecolor rgb "black" linew
 tu(t,5) linecolor rgb "black" linewidth 0.2 ,tv(t,5) linecolor rgb "black" linewidth 0.2 ,\
 tu(t,10) linecolor rgb "black" linewidth 0.2 ,tv(t,10) linecolor rgb "black" linewidth 0.2 ,\
 cu(t,.5) linecolor rgb "black" linewidth 0.2 ,cv(t,.5) linecolor rgb "black" linewidth 0.2 ,cu(t,.5) linecolor rgb "black" linewidth 0.2 ,-cv(t,.5) linecolor rgb "black" linewidth 0.2 ,\
-tu(t,0) linecolor rgb "black" linewidth 0.6 ,tv(t,0) linecolor rgb "black" linewidth 0.6 , source using 5:6 linecolor rgb "red" with lines
+tu(t,0) linecolor rgb "black" linewidth 0.6 ,tv(t,0) linecolor rgb "black" linewidth 0.6 , source using 6:7 linecolor rgb "red" with lines
 #cu(t,5),cv(t,5),cu(t,5),-cv(t,5)
 pause -1
 

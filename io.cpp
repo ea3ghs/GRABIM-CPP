@@ -16,7 +16,7 @@ int IO::exportGNUplot(GRABIM_Result Res, string filepath, int plot)
     {
         GNUplotExport << Res.f_analysis.at(i)*1e-9 << " " << 20*log10(abs(Res.S11_gridsearch.at(i))) << " "
                       << 20*log10(abs(Res.S21_gridsearch.at(i))) << " " << 20*log10(abs(Res.S11_nlopt.at(i)))
-                      << " " << 20*log10(abs(Res.S21_nlopt.at(i))) << real(Res.S11_nlopt.at(i))
+                      << " " << 20*log10(abs(Res.S21_nlopt.at(i))) << " " << real(Res.S11_nlopt.at(i))
                       << " " << imag(Res.S11_nlopt.at(i)) <<endl;
     }
     GNUplotExport.close();
