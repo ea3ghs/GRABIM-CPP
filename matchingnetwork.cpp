@@ -5,12 +5,14 @@ MatchingNetwork::MatchingNetwork()
     verbose  = false;
 }
 
+// It sets if the program should show detailed information about the iterations or not
 int MatchingNetwork::SetVerbose(bool vb)
 {
     verbose = vb;
     return 0;
 }
 
+// It loads a s2p file and calculates the output impedance
 int MatchingNetwork::SetSourceImpedance(std::string sourcepath)
 {
     DeviceData DATA = LoadS2PData(sourcepath);
@@ -21,6 +23,7 @@ int MatchingNetwork::SetSourceImpedance(std::string sourcepath)
     return 0;
 }
 
+// It sets the source impedance vs frequency
 int MatchingNetwork::SetSourceImpedance(cx_vec zs, vec freq)
 {
     if (zs.n_rows != freq.n_rows) return -1;
@@ -31,6 +34,7 @@ int MatchingNetwork::SetSourceImpedance(cx_vec zs, vec freq)
     return 0;
 }
 
+// It loads a s2p file and calculates the input impedance
 int MatchingNetwork::SetLoadImpedance(cx_vec zl, vec freq)
 {
     if (zl.n_rows != freq.n_rows) return -1;
@@ -41,6 +45,7 @@ int MatchingNetwork::SetLoadImpedance(cx_vec zl, vec freq)
     return 0;
 }
 
+// It sets the load impedance vs frequency
 int MatchingNetwork::SetLoadImpedance(std::string loadpath)
 {
     DeviceData DATA = LoadS2PData(loadpath);
@@ -51,31 +56,34 @@ int MatchingNetwork::SetLoadImpedance(std::string loadpath)
     return 0;
 }
 
-
+// Sets the first point of the grid search
 int MatchingNetwork::SetInitialPivot(rowvec x)
 {
     x_ini = x;
     return 0;
 }
 
+// Returns the first point of the grid search
 rowvec MatchingNetwork::GetInitialPivot()
 {
     return x_ini;
 }
 
+//Sets the portion of the spectrum where matching is required
 int MatchingNetwork::SetMatchingBand(double f1, double f2, int N)
 {
     f_matching = linspace(f1, f2, N);
     return 0;
 }
 
+// This function sets the ladder arrangement of the matching network
 int MatchingNetwork::SetTopology(std::string s)
 {
     topology = s;
     return 0;
 }
 
-
+//Loads a s2p data file and parses its contents. These data will be used to set source/load impedances
 DeviceData MatchingNetwork::LoadS2PData(std::string filepath)
 {
     DeviceData DATA;
@@ -251,7 +259,9 @@ DeviceData MatchingNetwork::LoadS2PData(std::string filepath)
     return DATA;
 }
 
-
+// Load and source impedances may be sampled at different frequencies. It is essential to resample them
+// using the same frequency basis. This requires interpolation of complex data. It would be desirable to use
+// spline or cubic interpolation, but it seems that they are not implemented in Armadillo
 int MatchingNetwork::ResampleImpedances()
 {
     //Check if the inputs lie in the s2p measurements
@@ -303,7 +313,7 @@ int MatchingNetwork::ResampleImpedances()
 }
 
 
-
+// Returns the S matrix at a given frequency
 cx_mat MatchingNetwork::getSparams(rowvec x, cx_double zs, cx_double zl, double f)
 {
     cx_mat ABCD = getABCDmatrix(x, f);
@@ -317,6 +327,7 @@ cx_mat MatchingNetwork::getSparams(rowvec x, cx_double zs, cx_double zl, double 
     return S;
 }
 
+// Returns the ABCD matrix at a given frequency
 cx_mat MatchingNetwork::getABCDmatrix(rowvec x, double f)
 {
     int element;
@@ -355,21 +366,24 @@ cx_mat MatchingNetwork::getABCDmatrix(rowvec x, double f)
 
         ABCD = ABCD*ABCD_t;
     }
- return ABCD;
+    return ABCD;
 }
 
+// Sets the maximum number of iterations for the grid search engine
 int MatchingNetwork::SetMaxIterGridSearch(int max_iter)
 {
     Grid_MaxIter = max_iter;
     return 0;
 }
 
+// Sets the threshold of what the program consideres a good matching
 int MatchingNetwork::SetThreshold(double th)
 {
     MatchingThreshold = th;
     return 0;
 }
 
+// Returns the matching threshold
 double MatchingNetwork::GetThreshold()
 {
     return MatchingThreshold;
@@ -415,15 +429,40 @@ GRABIM_Result MatchingNetwork::RunGRABIM()
 
         if (meanZS < meanZL)
         {
-               x_ini << 1.1*meanZS << lambda4<< .5*(meanZS+meanZL) << lambda4 << .9*meanZL << lambda4;
+            x_ini << 1.1*meanZS << lambda4<< .5*(meanZS+meanZL) << lambda4 << .9*meanZL << lambda4;
         }
         else
         {
-                x_ini << 0.9*meanZS << lambda4<< .5*(meanZS+meanZL) << lambda4 << 1.1*meanZL << lambda4;
+            x_ini << 0.9*meanZS << lambda4<< .5*(meanZS+meanZL) << lambda4 << 1.1*meanZL << lambda4;
         }
         Vaux = GridSearch();
         gridtest = CandidateEval(Vaux);
         cout << "3-sections lambda/4: S11_min = " <<  gridtest << " dB" << endl;
+        if (gridtest < opttopo - 0.5)
+        {
+            candidate = topology;
+            opttopo = gridtest;
+            Vopt = Vaux;
+        }
+
+        topology = "546";//Open circuit stub + Transmission line + Short circuited stub
+        double meanZ = .5*(meanZS+meanZL);
+        x_ini << meanZ << lambda4 << meanZ << lambda4<< meanZ << lambda4;
+        Vaux = GridSearch();
+        gridtest = CandidateEval(Vaux);
+        cout << "OC stub + TL + SC stub: S11_min = " <<  gridtest << " dB" << endl;
+        if (gridtest < opttopo - 0.5)
+        {
+            candidate = topology;
+            opttopo = gridtest;
+            Vopt = Vaux;
+        }
+
+        topology = "645";//Short circuited stub + Transmission line + Open circuit stub
+        x_ini << meanZ << lambda4 << meanZ << lambda4<< meanZ << lambda4;
+        Vaux = GridSearch();
+        gridtest = CandidateEval(Vaux);
+        cout << "SC stub + TL + OC stub: S11_min = " <<  gridtest << " dB" << endl;
         if (gridtest < opttopo - 0.5)
         {
             candidate = topology;
@@ -516,20 +555,20 @@ GRABIM_Result MatchingNetwork::RunGRABIM()
     }
     else
     {
-       queue <double> XINI;
-       for (unsigned int i = 0; i< topology.size();i++)
-       {
-           if ((!topology.substr(i,1).compare("0"))||(!topology.substr(i,1).compare("2"))) XINI.push(1e-9);
-           if ((!topology.substr(i,1).compare("1"))||(!topology.substr(i,1).compare("3"))) XINI.push(1e-12);
-           if ((!topology.substr(i,1).compare("4"))||(!topology.substr(i,1).compare("5"))||(!topology.substr(i,1).compare("6")))XINI.push(100),XINI.push(lambda4);
-       }
-       x_ini = ones(1, XINI.size());
-       for (unsigned int i = 0; i < x_ini.size();i++)
-       {
-           x_ini.at(i) = XINI.front();
-           XINI.pop();
-       }
-       Res.x_grid_search = GridSearch();
+        queue <double> XINI;
+        for (unsigned int i = 0; i< topology.size();i++)
+        {
+            if ((!topology.substr(i,1).compare("0"))||(!topology.substr(i,1).compare("2"))) XINI.push(1e-9);
+            if ((!topology.substr(i,1).compare("1"))||(!topology.substr(i,1).compare("3"))) XINI.push(1e-12);
+            if ((!topology.substr(i,1).compare("4"))||(!topology.substr(i,1).compare("5"))||(!topology.substr(i,1).compare("6")))XINI.push(100),XINI.push(lambda4);
+        }
+        x_ini = ones(1, XINI.size());
+        for (unsigned int i = 0; i < x_ini.size();i++)
+        {
+            x_ini.at(i) = XINI.front();
+            XINI.pop();
+        }
+        Res.x_grid_search = GridSearch();
     }
 
     Res.grid_val = CandidateEval(Res.x_grid_search);
@@ -643,6 +682,7 @@ rowvec MatchingNetwork::GridSearch()
         {
             best << best_candidate << 0 << 0 << 0 << endr;//Prepare best for new hypercube cycle
             xk = xkq.row(imin);//Set new pivot
+            xk = RemoveUnsignificantValues(xk);
             i = -1;//New pivot
             if (verbose) std::cout << "New pivot: " << xk << std::endl;
             continue;
@@ -673,9 +713,10 @@ rowvec MatchingNetwork::GridSearch()
                 int imin = v_find_catchup.at(0);
                 if (FXK.min() < best.min())
                 {
-                xk = XKQ.row(imin);
-                if (verbose)std::cout << "=> " << xk << ": " << FXK.min()<< std::endl;
-                i=-1;
+                    xk = XKQ.row(imin);
+                    xk = RemoveUnsignificantValues(xk);
+                    if (verbose)std::cout << "=> " << xk << ": " << FXK.min()<< std::endl;
+                    i=-1;
                 }
             }
 
@@ -683,6 +724,51 @@ rowvec MatchingNetwork::GridSearch()
     }
     return xk;
 }
+
+
+// This function checks whether the candidate vector contains some
+// irrelevant value or not. Unsignificant values may prevent the algorithm
+// to find a better or more realistic solution. In this sense, shunt elements
+// whose impedance exceeds 4kOhm are interpreted as open circuits, and conversely,
+// series components whose impedance is below 1 Ohm are treated as short circuits
+rowvec MatchingNetwork::RemoveUnsignificantValues(rowvec xk)
+{
+    double impedance, fmax = f_matching.max(), fmin = f_matching.min();
+    unsigned int element;
+    double wmax =2*datum::pi*fmax, wmin =2*datum::pi*fmin;
+    for (unsigned int i = 0; i < topology.length(); i++)
+    {
+        element = atoi(topology.substr(i,1).c_str());
+        switch(element)
+        {
+        case 0://Series inductor
+            impedance = wmax*xk.at(i);
+            if (impedance < 1)
+            {
+                xk.at(i) = 1e-30;
+            }
+            continue;
+        case 2://Shunt inductor
+            impedance = wmin*xk.at(i);
+            if (impedance > 4e3)
+            {xk.at(i) = 100;}
+            continue;
+        case 1://Series capacitor
+            impedance = 1./(wmin*xk.at(i));
+            if (impedance < 1)
+            {xk.at(i) = 100;}
+            continue;
+        case 3://Shunt capacitor
+            impedance = 1./(wmax*xk.at(i));
+            if (impedance > 4e3)
+            {xk.at(i) = 1e-30;}
+            continue;
+
+        }
+    }
+  return xk;
+}
+
 
 mat MatchingNetwork::GeneratingMatrix(int dim)
 {
@@ -711,8 +797,8 @@ double MatchingNetwork::CandidateEval(rowvec x)
         }
         if (ObjFun == ObjectiveFunction::NINF_POWERTRANS)
         {
-           ABCD = getABCDmatrix(x, f_matching.at(i));
-           fobj = CalcInvPowerTransfer(ABCD, ZS_matching.at(i), ZL_matching.at(i));
+            ABCD = getABCDmatrix(x, f_matching.at(i));
+            fobj = CalcInvPowerTransfer(ABCD, ZS_matching.at(i), ZL_matching.at(i));
         }
     }
     if (ObjFun == ObjectiveFunction::NINF_S11dB)fobj = 20*log10(fobj);//|grad{log(x)}| > |grad{x}| when x < 1;
@@ -780,8 +866,8 @@ rowvec MatchingNetwork::LocalOptimiser(rowvec x_grid)
     }
 
 
-   // opt.set_lower_bounds(lb);
-   // opt.set_upper_bounds(ub);
+    // opt.set_lower_bounds(lb);
+    // opt.set_upper_bounds(ub);
 
     std::vector<double> x(dim);
     for (int i = 0; i < dim; i++)x[i] = x_grid.at(i);
@@ -794,27 +880,27 @@ rowvec MatchingNetwork::LocalOptimiser(rowvec x_grid)
     switch(result)
     {
     //Success
-        case 1: std::cout << "Success!" <<std::endl;
-                break;
-        case 2: std::cout << "Goal achieved" <<std::endl;
-                break;
-        case 3: std::cout << "The algorithm reached convergence (relative)" <<std::endl;
-                break;
-        case 4: std::cout << "The algorithm reached convergence (absolute)" <<std::endl;
-                break;
-        case 5: std::cout << "Maximum number of evaluations reached" <<std::endl;
-                break;
-        case 6: std::cout << "Maximum time reached" <<std::endl;
-            break;
-     //Failure
-        case -1: std::cout << "NLopt failed!" <<std::endl;
-                 break;
-        case -2: std::cout << "Invalid arguments" <<std::endl;
-                 break;
-        case -3: std::cout << "There is not enough available memory" <<std::endl;
-                 break;
-        case -4: std::cout << "Forced termination" <<std::endl;
-                 break;
+    case 1: std::cout << "Success!" <<std::endl;
+        break;
+    case 2: std::cout << "Goal achieved" <<std::endl;
+        break;
+    case 3: std::cout << "The algorithm reached convergence (relative)" <<std::endl;
+        break;
+    case 4: std::cout << "The algorithm reached convergence (absolute)" <<std::endl;
+        break;
+    case 5: std::cout << "Maximum number of evaluations reached" <<std::endl;
+        break;
+    case 6: std::cout << "Maximum time reached" <<std::endl;
+        break;
+        //Failure
+    case -1: std::cout << "NLopt failed!" <<std::endl;
+        break;
+    case -2: std::cout << "Invalid arguments" <<std::endl;
+        break;
+    case -3: std::cout << "There is not enough available memory" <<std::endl;
+        break;
+    case -4: std::cout << "Forced termination" <<std::endl;
+        break;
     }
 
     rowvec x_nlopt = ones(1, dim);
@@ -839,29 +925,22 @@ nlopt::algorithm MatchingNetwork::GetNLoptAlg()
 
 int MatchingNetwork::SetObjectiveFunction(ObjectiveFunction of)
 {
-  ObjFun = of;
-  return 0;
+    ObjFun = of;
+    return 0;
 }
 
 ObjectiveFunction MatchingNetwork::GetObjectiveFunction()
 {
-   return ObjFun;
+    return ObjFun;
 }
 
 // Inverse power transfer from ABCD matrix
 // [1] Eq (6.2.1), (6.2.2)
 double MatchingNetwork::CalcInvPowerTransfer(cx_mat ABCD, cx_double ZS, cx_double ZL)
 {
-   cx_double p = real(ZS)*real(ZL) - imag(ZS)*imag(ZL);
-   cx_double q = imag(ZS)*real(ZL) + imag(ZL)*real(ZS);
-   cx_double a = ABCD(0,0)*real(ZL) - ABCD(1,0)*q + ABCD(1,1)*real(ZS);
-   cx_double b = ABCD(0,1) + ABCD(1,0)*p + ABCD(1,1)*imag(ZS) + ABCD(0,0)*imag(ZL);
-   return abs((a*a + b*b)/(4*real(ZS)*real(ZL)));
-}
-
-
-
-cx_mat MatchingNetwork::precomputedTopologies()
-{
-
+    cx_double p = real(ZS)*real(ZL) - imag(ZS)*imag(ZL);
+    cx_double q = imag(ZS)*real(ZL) + imag(ZL)*real(ZS);
+    cx_double a = ABCD(0,0)*real(ZL) - ABCD(1,0)*q + ABCD(1,1)*real(ZS);
+    cx_double b = ABCD(0,1) + ABCD(1,0)*p + ABCD(1,1)*imag(ZS) + ABCD(0,0)*imag(ZL);
+    return abs((a*a + b*b)/(4*real(ZS)*real(ZL)));
 }
