@@ -21,7 +21,9 @@ cx_double check_string(char *arg)
     else
     {
         zreal = atof(arg);
-        return cx_double(zreal, 0);
+        if (zreal > 0)return cx_double(zreal, 0);
+        else
+            return cx_double(-1, -1);
     }
 }
 

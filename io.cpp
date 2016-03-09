@@ -46,3 +46,4 @@ int IO::exportGNUplot(GRABIM_Result Res, string filepath, int plot)
     }
     return 0;
 }
+

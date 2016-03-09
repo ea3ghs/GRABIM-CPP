@@ -143,18 +143,19 @@ DeviceData MatchingNetwork::LoadS2PData(std::string filepath)
     do
     {
         //Remove consecutive repeated blank spaces and space at the beginning
+        //Sometimes, the fields may be separated by \t...
         for (unsigned int i = 0; i< line.length(); i++)
         {
             if (i == 0)//Remove first space
             {
-                if(!line.substr(0,1).compare(" "))
+                if((!line.substr(0,1).compare(" "))||(!line.substr(0,1).compare("\t")))
                 {
                     line.erase(0, 1);
                     i--;
                 }
                 continue;
             }
-            if ((line.at(i-1) == line.at(i))&&(!line.substr(i, 1).compare(" ")))
+            if (((!line.substr(i-1, 1).compare(" "))||(!line.substr(i-1,1).compare("\t")))&&((!line.substr(i, 1).compare(" "))||(!line.substr(i,1).compare("\t"))))
             {
                 line.erase(i, 1);
                 i--;
@@ -166,39 +167,49 @@ DeviceData MatchingNetwork::LoadS2PData(std::string filepath)
 
         //Frequency
         int index = line.find_first_of(" ");
+        if (index == -1)index = line.find_first_of("\t");
         frequency.push(atof(line.substr(0,index).c_str()));
         line.erase(0, index+1);
 
 
         index = line.find_first_of(" ");
+        if (index == -1)index = line.find_first_of("\t");
         S11M.push(atof(line.substr(0,index).c_str()));
         line.erase(0, index+1);
 
         index = line.find_first_of(" ");
+        if (index == -1)index = line.find_first_of("\t");
         S11A.push(atof(line.substr(0,index).c_str()));
         line.erase(0, index+1);
 
         index = line.find_first_of(" ");
+        if (index == -1)index = line.find_first_of("\t");
         S21M.push(atof(line.substr(0,index).c_str()));
         line.erase(0, index+1);
 
         index = line.find_first_of(" ");
+        if (index == -1)index = line.find_first_of("\t");
         S21A.push(atof(line.substr(0,index).c_str()));
         line.erase(0, index+1);
 
         index = line.find_first_of(" ");
+        if (index == -1)index = line.find_first_of("\t");
         S12M.push(atof(line.substr(0,index).c_str()));
         line.erase(0, index+1);
 
         index = line.find_first_of(" ");
+        if (index == -1)index = line.find_first_of("\t");
         S12A.push(atof(line.substr(0,index).c_str()));
         line.erase(0, index+1);
 
         index = line.find_first_of(" ");
+        if (index == -1)index = line.find_first_of("\t");
         S22M.push(atof(line.substr(0,index).c_str()));
         line.erase(0, index+1);
 
         index = line.find_first_of(" ");
+        if (index == -1)index = line.find_first_of("\t");
+        if (index == -1)index = line.find_first_of("\r");//End of the line
         S22A.push(atof(line.substr(0,index).c_str()));
         qsize++;
     }while (std::getline(s2pfile, line));
