@@ -45,10 +45,10 @@ int main(int argc, char *argv[])
         MatchingObject.SetMatchingBand(atof(argv[3]), atof(argv[4]), N);
         ZS = check_string(argv[1]);
         ZL = check_string(argv[2]);
+
         if(ZS.real() == -1) MatchingObject.SetSourceImpedance(argv[1]);
         if(ZL.real() == -1) MatchingObject.SetLoadImpedance(argv[2]);
         MatchingObject.SetTopology(argv[5]);
-
         string NL_ALG = argv[6];
         //NLopt algorithm
         if (NL_ALG.compare("NLOPT_LN_PRAXIS")) MatchingObject.SetNLoptAlg(nlopt::LN_PRAXIS);
