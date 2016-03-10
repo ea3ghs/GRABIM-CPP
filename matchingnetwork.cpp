@@ -83,6 +83,17 @@ int MatchingNetwork::SetTopology(std::string s)
     return 0;
 }
 
+string tolower(string str)
+{
+    char c;
+    for (unsigned int i =0; i < str.length();i++)
+    {
+        c=str.at(i);
+        str.at(i) = tolower(c);
+    }
+    return str;
+}
+
 //Loads a s2p data file and parses its contents. These data will be used to set source/load impedances
 DeviceData MatchingNetwork::LoadS2PData(std::string filepath)
 {
@@ -104,20 +115,21 @@ DeviceData MatchingNetwork::LoadS2PData(std::string filepath)
         std::getline(s2pfile, line);
     }
 
+    line = tolower(line);
     //Freq scale
-    if (!line.compare(2,1, "G"))
+    if (line.find("ghz") != -1)
     {
         freq_scale = 1e9;
     }
     else
     {
-        if (!line.compare(2,1, "M"))
+        if (line.find("mhz") != -1)
         {
             freq_scale = 1e6;
         }
         else
         {
-            if (!line.compare(2,1, "K"))
+            if ((line.find("khz") != -1))
             {
                 freq_scale = 1e3;
             }
@@ -127,12 +139,40 @@ DeviceData MatchingNetwork::LoadS2PData(std::string filepath)
 
     //Get the impedance at which the S params were measured
 
-    int Rindex = line.find_last_of("R");
+    int Rindex = line.find_last_of("r");
     Rindex = line.find_first_not_of(" ", Rindex);
     Zref = atof(line.substr(Rindex+1).c_str());
+    int is_indB = line.find("db");
 
 
-    while( (!getline(s2pfile, line)) || !line.compare(0,1, "!")|| line.length() == 1 );//Looking for the start of the raw data
+    while( getline(s2pfile, line) )
+    {//Looking for the start of the raw data
+
+        //Remove consecutive repeated blank spaces and space at the beginning
+        //Sometimes, the fields may be separated by \t...
+        for (unsigned int i = 0; i< line.length(); i++)
+        {
+            if (i == 0)//Remove first space
+            {
+                if((!line.substr(0,1).compare(" "))||(!line.substr(0,1).compare("\t")))
+                {
+                    line.erase(0, 1);
+                    i--;
+                }
+                continue;
+            }
+            if (((!line.substr(i-1, 1).compare(" "))||(!line.substr(i-1,1).compare("\t")))&&((!line.substr(i, 1).compare(" "))||(!line.substr(i,1).compare("\t"))))
+            {
+                line.erase(i, 1);
+                i--;
+            }
+        }
+
+        if ((!line.compare(0,1, "!"))|| (line.length() == 1)) continue;
+        else break;
+
+
+    }
 
     //DATA beginning.
     //At this point, the number of frequency samples is not known, so it's better to
@@ -163,7 +203,7 @@ DeviceData MatchingNetwork::LoadS2PData(std::string filepath)
         }
 
         if (line.empty()|| (line.length()==1))break;
-        if (line.at(0) == '!') continue;//Comment
+        if (line.at(0) == '!') break;//Comment
 
         //Frequency
         int index = line.find_first_of(" ");
@@ -227,6 +267,7 @@ DeviceData MatchingNetwork::LoadS2PData(std::string filepath)
         S11a = S11A.front();
         S11M.pop();
         S11A.pop();
+        if (is_indB != -1) S11m = pow(10, .05*S11m);
         phi = (datum::pi/180)*S11a;
         S(i, 0) = cx_double(S11m,0)*cx_double(cos(phi), sin(phi));
 
@@ -234,6 +275,7 @@ DeviceData MatchingNetwork::LoadS2PData(std::string filepath)
         S21a = S21A.front();
         S21M.pop();
         S21A.pop();
+        if (is_indB != -1) S21m = pow(10, .05*S21m);
         phi = (datum::pi/180)*S21a;
         S(i, 1) = cx_double(S21m,0)*cx_double(cos(phi), sin(phi));
 
@@ -242,6 +284,7 @@ DeviceData MatchingNetwork::LoadS2PData(std::string filepath)
         S12a = S12A.front();
         S12M.pop();
         S12A.pop();
+        if (is_indB != -1) S12m = pow(10, .05*S12m);
         phi = (datum::pi/180)*S12a;
         S(i, 2) = cx_double(S12m,0)*cx_double(cos(phi), sin(phi));
 
@@ -251,6 +294,7 @@ DeviceData MatchingNetwork::LoadS2PData(std::string filepath)
         S22a = S22A.front();
         S22M.pop();
         S22A.pop();
+        if (is_indB != -1) S22m = pow(10, .05*S22m);
         phi = (datum::pi/180)*S22a;
         S(i, 3) = cx_double(S22m,0)*cx_double(cos(phi), sin(phi));
 
@@ -260,12 +304,14 @@ DeviceData MatchingNetwork::LoadS2PData(std::string filepath)
         Z(i, 2) = K*2.*S(i,2);//Z12
         Z(i, 3) = K*((1.-S(i, 0))*(1.+S(i,3))+S(i,1)*S(i,2));//Z22
 
+        //cout << freq.at(i) << " " << Z.row(i) << endl;
+
     }
+
 
     DATA.freq = freq;
     DATA.S = S;
     DATA.Z = Z;
-
 
     return DATA;
 }
