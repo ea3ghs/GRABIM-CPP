@@ -323,7 +323,7 @@ int MatchingNetwork::ResampleImpedances()
 {
     //Check if the inputs lie in the s2p measurements
     double fmin, fmax;
-    (fS.min() > fL.min()) ? fmin = fL.min() : fmin = fS.min();
+    (fS.min() > fL.min()) ? fmin = fS.min() : fmin = fL.min();
     (fS.max() > fL.max()) ? fmax = fL.max() : fmax = fS.max();
 
     int N = f_matching.n_rows;
@@ -341,6 +341,7 @@ int MatchingNetwork::ResampleImpedances()
     double N_density = N/(f_matching.max() - f_matching.min());
     f_analysis = linspace(fmin, fmax, floor(N_density*(fmax-fmin)));
 
+
     //Impedance interpolation. This way both vector have the same frequency basis.
     vec ZS_r(real(ZS)), ZS_i(imag(ZS)), ZL_r(real(ZL)), ZL_i(imag(ZL));
     vec ZS_inter_R, ZS_inter_I, ZL_inter_R, ZL_inter_I;
@@ -351,7 +352,6 @@ int MatchingNetwork::ResampleImpedances()
 
     ZS = cx_vec(ZS_inter_R, ZS_inter_I);
     ZL = cx_vec(ZL_inter_R, ZL_inter_I);
-
 
     //Select impedance values at the matching band
     vec V = abs(f_analysis - f_matching.min());
