@@ -94,6 +94,31 @@ string tolower(string str)
     return str;
 }
 
+
+string RemoveBlankSpaces(string line)
+{
+    //Remove consecutive repeated blank spaces and space at the beginning
+    //Sometimes, the fields may be separated by \t...
+    for (unsigned int i = 0; i< line.length(); i++)
+    {
+        if (i == 0)//Remove first space
+        {
+            if((!line.substr(0,1).compare(" "))||(!line.substr(0,1).compare("\t")))
+            {
+                line.erase(0, 1);
+                i--;
+            }
+            continue;
+        }
+        if (((!line.substr(i-1, 1).compare(" "))||(!line.substr(i-1,1).compare("\t")))&&((!line.substr(i, 1).compare(" "))||(!line.substr(i,1).compare("\t"))))
+        {
+            line.erase(i, 1);
+            i--;
+        }
+    }
+    return line;
+}
+
 //Loads a s2p data file and parses its contents. These data will be used to set source/load impedances
 DeviceData MatchingNetwork::LoadS2PData(std::string filepath)
 {
@@ -148,25 +173,7 @@ DeviceData MatchingNetwork::LoadS2PData(std::string filepath)
     while( getline(s2pfile, line) )
     {//Looking for the start of the raw data
 
-        //Remove consecutive repeated blank spaces and space at the beginning
-        //Sometimes, the fields may be separated by \t...
-        for (unsigned int i = 0; i< line.length(); i++)
-        {
-            if (i == 0)//Remove first space
-            {
-                if((!line.substr(0,1).compare(" "))||(!line.substr(0,1).compare("\t")))
-                {
-                    line.erase(0, 1);
-                    i--;
-                }
-                continue;
-            }
-            if (((!line.substr(i-1, 1).compare(" "))||(!line.substr(i-1,1).compare("\t")))&&((!line.substr(i, 1).compare(" "))||(!line.substr(i,1).compare("\t"))))
-            {
-                line.erase(i, 1);
-                i--;
-            }
-        }
+        line = RemoveBlankSpaces(line);
 
         if ((!line.compare(0,1, "!"))|| (line.length() == 1)) continue;
         else break;
@@ -182,25 +189,7 @@ DeviceData MatchingNetwork::LoadS2PData(std::string filepath)
 
     do
     {
-        //Remove consecutive repeated blank spaces and space at the beginning
-        //Sometimes, the fields may be separated by \t...
-        for (unsigned int i = 0; i< line.length(); i++)
-        {
-            if (i == 0)//Remove first space
-            {
-                if((!line.substr(0,1).compare(" "))||(!line.substr(0,1).compare("\t")))
-                {
-                    line.erase(0, 1);
-                    i--;
-                }
-                continue;
-            }
-            if (((!line.substr(i-1, 1).compare(" "))||(!line.substr(i-1,1).compare("\t")))&&((!line.substr(i, 1).compare(" "))||(!line.substr(i,1).compare("\t"))))
-            {
-                line.erase(i, 1);
-                i--;
-            }
-        }
+        line = RemoveBlankSpaces(line);
 
         if (line.empty()|| (line.length()==1))break;
         if (line.at(0) == '!') break;//Comment
