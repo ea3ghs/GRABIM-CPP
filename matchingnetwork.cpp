@@ -530,6 +530,18 @@ GRABIM_Result MatchingNetwork::RunGRABIM()
         }
 
 
+        topology = "313020";
+        x_ini  << 5e-12 << 5e-12 << 5e-12 << 5e-9 << 5e-9 << 5e-9;
+        Vaux = GridSearch();
+        gridtest = CandidateEval(Vaux);
+        cout << "PiCTeeL: S11_min = " <<  gridtest << " dB" << endl;
+        if (gridtest < opttopo - 0.5)
+        {
+            candidate = topology;
+            opttopo = gridtest;
+            Vopt = Vaux;
+        }
+
 
 
         topology = "03030";
@@ -599,7 +611,7 @@ GRABIM_Result MatchingNetwork::RunGRABIM()
         Res.x_grid_search = Vopt;
 
     }
-    else
+    else//It builds an initial vector using default values 1nH for inductances, 1 pF for capacitors, 100 Ohm & lambda/4 for transmission lines
     {
         queue <double> XINI;
         for (unsigned int i = 0; i< topology.size();i++)
@@ -728,7 +740,7 @@ rowvec MatchingNetwork::GridSearch()
         {
             best << best_candidate << 0 << 0 << 0 << endr;//Prepare best for new hypercube cycle
             xk = xkq.row(imin);//Set new pivot
-            xk = RemoveUnsignificantValues(xk);
+            xk = InspectCandidate(xk);
             i = -1;//New pivot
             if (verbose) std::cout << "New pivot: " << xk << std::endl;
             continue;
@@ -760,7 +772,7 @@ rowvec MatchingNetwork::GridSearch()
                 if (FXK.min() < best.min())
                 {
                     xk = XKQ.row(imin);
-                    xk = RemoveUnsignificantValues(xk);
+                    xk = InspectCandidate(xk);
                     if (verbose)std::cout << "=> " << xk << ": " << FXK.min()<< std::endl;
                     i=-1;
                 }
@@ -777,7 +789,7 @@ rowvec MatchingNetwork::GridSearch()
 // to find a better or more realistic solution. In this sense, shunt elements
 // whose impedance exceeds 4kOhm are interpreted as open circuits, and conversely,
 // series components whose impedance is below 1 Ohm are treated as short circuits
-rowvec MatchingNetwork::RemoveUnsignificantValues(rowvec xk)
+rowvec MatchingNetwork::InspectCandidate(rowvec xk)
 {
     double impedance, fmax = f_matching.max(), fmin = f_matching.min();
     unsigned int element;
@@ -793,21 +805,54 @@ rowvec MatchingNetwork::RemoveUnsignificantValues(rowvec xk)
             {
                 xk.at(i) = 1e-30;
             }
+            if (xk.at(i) < 0)//Inductance must be > 0, so it seems that a capacitor would do a better job
+            {
+                xk.at(i) = 1./(2e3*wmin);//High impedance capacitor
+                topology[i] = '1';//Series capacitor
+                cout << "Warning: The selected topology leads to L < 0" <<endl;
+                cout << "Warging: Topology changed. The new topology is: " << topology << endl;
+            }
             continue;
         case 2://Shunt inductor
             impedance = wmin*xk.at(i);
             if (impedance > 4e3)
-            {xk.at(i) = 100;}
+            {
+                xk.at(i) = 100;
+            }
+            if (xk.at(i) < 0)//Inductance must be > 0, so it seems that a capacitor would do a better job
+            {
+                xk.at(i) = 1./(2e3*wmin);//High impedance capacitor
+                topology[i]='3';//Shunt capacitor
+                cout << "Warning: The selected topology leads to L < 0" <<endl;
+                cout << "Warging: Topology changed. The new topology is: " << topology << endl;
+            }
+
             continue;
         case 1://Series capacitor
             impedance = 1./(wmin*xk.at(i));
             if (impedance < 1)
-            {xk.at(i) = 100;}
+            {
+                xk.at(i) = 100;
+            }
+            if (xk.at(i) < 0)//C must be > 0, so it seems that an inductor would do a better job
+            {
+                xk.at(i) = 5./(wmax);//Low impedance inductance
+                topology[i] = '0';//Series inductance
+                cout << "Warning: The selected topology leads to C < 0" <<endl;
+                cout << "Warging: Topology changed. The new topology is: " << topology << endl;
+            }
             continue;
         case 3://Shunt capacitor
             impedance = 1./(wmax*xk.at(i));
             if (impedance > 4e3)
             {xk.at(i) = 1e-30;}
+            if (xk.at(i) < 0)//C must be > 0, so it seems that an inductor would do a better job
+            {
+                xk.at(i) = 5./(wmax);//Low impedance inductance
+                topology[i] = '2';//Shunt inductance
+                cout << "Warning: The selected topology leads to C < 0" <<endl;
+                cout << "Warging: Topology changed. The new topology is: " << topology << endl;
+            }
             continue;
 
         }
