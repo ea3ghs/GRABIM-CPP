@@ -1,4 +1,4 @@
-source = "test1_Nelder"
+source = "test1_Nelders"
 
 # S11 [dB]
 set term wxt 0
@@ -35,6 +35,8 @@ set rrange [-0 : 10]
 set trange [-pi : pi]
 set xrange [-1:1]
 set yrange [-1:1]
+set label "-10dB" at 0.22,0.22
+set label "-15dB" at 0.1,0.1
 tv(t,r) = sin(t)/(1+r)
 tu(t,r) = (cos(t) +r)/(1+r)
 cu(t,x) = 1 + cos(t)/x
@@ -56,9 +58,5 @@ tu(t,2) linecolor rgb "black" linewidth 0.2 ,tv(t,2) linecolor rgb "black" linew
 tu(t,5) linecolor rgb "black" linewidth 0.2 ,tv(t,5) linecolor rgb "black" linewidth 0.2 ,\
 tu(t,10) linecolor rgb "black" linewidth 0.2 ,tv(t,10) linecolor rgb "black" linewidth 0.2 ,\
 cu(t,.5) linecolor rgb "black" linewidth 0.2 ,cv(t,.5) linecolor rgb "black" linewidth 0.2 ,cu(t,.5) linecolor rgb "black" linewidth 0.2 ,-cv(t,.5) linecolor rgb "black" linewidth 0.2 ,\
-tu(t,0) linecolor rgb "black" linewidth 0.6 ,tv(t,0) linecolor rgb "black" linewidth 0.6 , source using 6:7 linecolor rgb "red" with lines
-#cu(t,5),cv(t,5),cu(t,5),-cv(t,5)
+tu(t,0) linecolor rgb "black" linewidth 0.6 ,tv(t,0) linecolor rgb "black" linewidth 0.6 , source using 6:7 linecolor rgb "red" with lines,0.335*sin(t),0.335*cos(t) linecolor rgb "green",0.175*sin(t),0.175*cos(t) linecolor rgb "green"
 pause -1
-
-
-

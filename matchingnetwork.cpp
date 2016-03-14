@@ -448,7 +448,7 @@ GRABIM_Result MatchingNetwork::RunGRABIM()
 
         cout << "Grid search result for some common networks..." << endl;
         topology = "313202";//PiCPiL
-        x_ini << 5e-12 << 5e-12 << 5e-12 << 5e-9 << 5e-9 << 5e-9;
+        x_ini << 1e-12 << 1e-12 << 1e-12 << 1e-9 << 1e-9 << 1e-9;
         Vaux = GridSearch();
         gridtest = CandidateEval(Vaux);
         candidate = topology;
@@ -458,7 +458,7 @@ GRABIM_Result MatchingNetwork::RunGRABIM()
 
 
         topology = "202313";//PiLPiC
-        x_ini << 5e-9 << 5e-9 << 5e-9 << 5e-12 << 5e-12 << 5e-12;
+        x_ini << 1e-9 << 1e-9 << 1e-9 << 1e-12 << 1e-12 << 1e-12;
         Vaux = GridSearch();
         gridtest = CandidateEval(Vaux);
         cout << "PiLPiC: S11_min = " <<  gridtest << " dB" << endl;
@@ -518,7 +518,7 @@ GRABIM_Result MatchingNetwork::RunGRABIM()
 
 
         topology = "020313";
-        x_ini << 5e-9 << 5e-9 << 5e-9 << 5e-12 << 5e-12 << 5e-12;
+        x_ini << 1e-9 << 1e-9 << 1e-9 << 1e-12 << 1e-12 << 1e-12;
         Vaux = GridSearch();
         gridtest = CandidateEval(Vaux);
         cout << "TeeLPiC: S11_min = " <<  gridtest << " dB" << endl;
@@ -531,7 +531,7 @@ GRABIM_Result MatchingNetwork::RunGRABIM()
 
 
         topology = "313020";
-        x_ini  << 5e-12 << 5e-12 << 5e-12 << 5e-9 << 5e-9 << 5e-9;
+        x_ini  << 1e-12 << 1e-12 << 1e-12 << 1e-9 << 1e-9 << 1e-9;
         Vaux = GridSearch();
         gridtest = CandidateEval(Vaux);
         cout << "PiCTeeL: S11_min = " <<  gridtest << " dB" << endl;
@@ -545,7 +545,7 @@ GRABIM_Result MatchingNetwork::RunGRABIM()
 
 
         topology = "03030";
-        x_ini << 5e-9 << 5e-12 << 5e-9 << 5e-12 << 5e-9;
+        x_ini << 1e-9 << 1e-12 << 1e-9 << 1e-12 << 1e-9;
         Vaux = GridSearch();
         gridtest = CandidateEval(Vaux);
         cout << "Lowpass LC ladder: S11_min = " <<  gridtest << " dB" << endl;
@@ -557,7 +557,7 @@ GRABIM_Result MatchingNetwork::RunGRABIM()
         }
 
         topology = "43434";
-        x_ini << 75 << lambda4 << 5e-12 << 75 << lambda4  << 5e-12 << 75 << lambda4 ;
+        x_ini << 75 << lambda4 << 1e-12 << 75 << lambda4  << 1e-12 << 75 << lambda4 ;
         Vaux = GridSearch();
         gridtest = CandidateEval(Vaux);
         cout << "Lowpass TL-C ladder: S11_min = " <<  gridtest << " dB" << endl;
@@ -570,7 +570,7 @@ GRABIM_Result MatchingNetwork::RunGRABIM()
 
 
         topology = "01230123";//BPP3
-        x_ini << 5e-9 << 5e-12 << 5e-9 << 5e-12<< 5e-9 << 5e-12<< 5e-9 << 5e-12;
+        x_ini << 1e-9 << 1e-12 << 1e-9 << 1e-12<< 1e-9 << 1e-12<< 1e-9 << 1e-12;
         Vaux = GridSearch();
         gridtest = CandidateEval(Vaux);
         cout << "BPP3: S11_min = " <<  gridtest << " dB" << endl;
@@ -582,7 +582,7 @@ GRABIM_Result MatchingNetwork::RunGRABIM()
         }
 
         topology = "23012301";//BPS3
-        x_ini << 5e-9 << 5e-12 << 5e-9 << 5e-12<< 5e-9 << 5e-12<< 5e-9 << 5e-12;
+        x_ini << 1e-9 << 1e-12 << 1e-9 << 1e-12<< 1e-9 << 1e-12<< 1e-9 << 1e-12;
         Vaux = GridSearch();
         gridtest = CandidateEval(Vaux);
         cout << "BPS3: S11_min = " <<  gridtest << " dB" << endl;
@@ -595,7 +595,7 @@ GRABIM_Result MatchingNetwork::RunGRABIM()
 
 
         topology = "131020131";
-        x_ini << 5e-12 << 5e-12 << 5e-12 << 5e-9 << 5e-9 << 5e-9 << 5e-12 << 5e-12 << 5e-12;
+        x_ini << 1e-12 << 1e-12 << 1e-12 << 1e-9 << 1e-9 << 1e-9 << 1e-12 << 1e-12 << 1e-12;
         Vaux = GridSearch();
         gridtest = CandidateEval(Vaux);
         cout << "TeeCTeeLTeeC: S11_min = " <<  gridtest << " dB" << endl;
@@ -854,6 +854,14 @@ rowvec MatchingNetwork::InspectCandidate(rowvec xk)
                 cout << "Warging: Topology changed. The new topology is: " << topology << endl;
             }
             continue;
+         default://It is a transmission line or a stub
+            double zmax = max(abs(ZS));
+            if (zmax < max(abs(ZL))) zmax = max(abs(ZL));
+            if ((xk.at(i) > 5*zmax) || (xk.at(i+1) < 0))//Something is wrong...
+            {
+                return -1*ones(1, xk.n_cols);
+            }
+
 
         }
     }
