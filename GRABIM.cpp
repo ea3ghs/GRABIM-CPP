@@ -1,445 +1,98 @@
-#include "matchingnetwork.h"
+#include "GRABIM.h"
 
-MatchingNetwork::MatchingNetwork()
+GRABIM::GRABIM()
 {
     verbose  = false;
+    Grid_MaxIter = 1000;
+    MatchingThreshold = -30;//It specifies the mininum S11 [dB] required, typically,
+    //S11 < 10 dB is considered as valid for common applications
+
+    ObjFun = ObjectiveFunction::NINF_S11dB;//Sets the kind of objective functions. Everything seems to
+                                           //suggest that NINF_S11dB gives the best results
+    topology = "-1";//By default, the engine will search the optimum topology from the predefined set of circuit
+    NLoptAlgo = nlopt::LN_NELDERMEAD;//By default, the local optimiser was chosen to be the Nelder-Mead algorithm
 }
 
 // It sets if the program should show detailed information about the iterations or not
-int MatchingNetwork::SetVerbose(bool vb)
+int GRABIM::SetVerbose(bool vb)
 {
     verbose = vb;
     return 0;
 }
 
-// It loads a s2p file and calculates the output impedance
-int MatchingNetwork::SetSourceImpedance(std::string sourcepath)
-{
-    DeviceData DATA = LoadS2PData(sourcepath);
-    if (DATA.freq.at(0) == -1) return -1;//Prevents from corrupted file format
-    fS = DATA.freq;
-    ZS = DATA.Z.col(3);
-    if (!ZL.empty())ResampleImpedances();
-    return 0;
-}
+
 
 // It sets the source impedance vs frequency
-int MatchingNetwork::SetSourceImpedance(cx_vec zs, vec freq)
+int GRABIM::SetSourceImpedance(cx_vec zs)
 {
-    if (zs.n_rows != freq.n_rows) return -1;
     ZS = zs;
-    ZS_matching = zs;
-    fS = freq;
-    if (!ZL.empty())ResampleImpedances();
     return 0;
 }
 
 // It loads a s2p file and calculates the input impedance
-int MatchingNetwork::SetLoadImpedance(cx_vec zl, vec freq)
+int GRABIM::SetLoadImpedance(cx_vec zl)
 {
-    if (zl.n_rows != freq.n_rows) return -1;
     ZL = zl;
-    ZL_matching = ZL;
-    fL = freq;
-    if (!ZS.empty())ResampleImpedances();
     return 0;
 }
 
 // It sets the load impedance vs frequency
-int MatchingNetwork::SetLoadImpedance(std::string loadpath)
+
+int GRABIM::SetFrequency(vec f)
 {
-    DeviceData DATA = LoadS2PData(loadpath);
-    if (DATA.freq.at(0) == -1) return -1;//Prevents from corrupted file format
-    fL = DATA.freq;
-    ZL = DATA.Z.col(0);
-    if (!ZS.empty())ResampleImpedances();
+    freq = f;
     return 0;
 }
 
 // Sets the first point of the grid search
-int MatchingNetwork::SetInitialPivot(rowvec x)
+int GRABIM::SetInitialPivot(rowvec x)
 {
     x_ini = x;
     return 0;
 }
 
 // Returns the first point of the grid search
-rowvec MatchingNetwork::GetInitialPivot()
+rowvec GRABIM::GetInitialPivot()
 {
     return x_ini;
 }
 
-//Sets the portion of the spectrum where matching is required
-int MatchingNetwork::SetMatchingBand(double f1, double f2, int N)
-{
-    f_matching = linspace(f1, f2, N);
-    return 0;
-}
+
 
 // This function sets the ladder arrangement of the matching network
-int MatchingNetwork::SetTopology(std::string s)
+int GRABIM::SetTopology(std::string s)
 {
     topology = s;
     return 0;
 }
 
-string tolower(string str)
-{
-    char c;
-    for (unsigned int i =0; i < str.length();i++)
-    {
-        c=str.at(i);
-        str.at(i) = tolower(c);
-    }
-    return str;
-}
-
-
-string RemoveBlankSpaces(string line)
-{
-    //Remove consecutive repeated blank spaces and space at the beginning
-    //Sometimes, the fields may be separated by \t...
-    for (unsigned int i = 0; i< line.length(); i++)
-    {
-        if (i == 0)//Remove first space
-        {
-            if((!line.substr(0,1).compare(" "))||(!line.substr(0,1).compare("\t")))
-            {
-                line.erase(0, 1);
-                i--;
-            }
-            continue;
-        }
-        if (((!line.substr(i-1, 1).compare(" "))||(!line.substr(i-1,1).compare("\t")))&&((!line.substr(i, 1).compare(" "))||(!line.substr(i,1).compare("\t"))))
-        {
-            line.erase(i, 1);
-            i--;
-        }
-    }
-    return line;
-}
-
-//Loads a s2p data file and parses its contents. These data will be used to set source/load impedances
-DeviceData MatchingNetwork::LoadS2PData(std::string filepath)
-{
-    DeviceData DATA;
-    std::ifstream s2pfile(filepath.c_str());//Tries to open the data file.
-    if(!s2pfile.is_open())//The data file cannot be opened => error
-    {
-        DATA.freq.at(0) = -1;
-        return DATA;
-    }
-
-    std::string line;
-    double freq_scale = 1;
-    double Zref = 50;
-
-    std::getline(s2pfile, line);
-    while(line.compare(0, 1, "#"))//Looking for # field
-    {
-        std::getline(s2pfile, line);
-    }
-
-    line = tolower(line);
-    //Freq scale
-    if (line.find("ghz") != -1)
-    {
-        freq_scale = 1e9;
-    }
-    else
-    {
-        if (line.find("mhz") != -1)
-        {
-            freq_scale = 1e6;
-        }
-        else
-        {
-            if ((line.find("khz") != -1))
-            {
-                freq_scale = 1e3;
-            }
-        }
-    }
-
-
-    //Get the impedance at which the S params were measured
-
-    int Rindex = line.find_last_of("r");
-    Rindex = line.find_first_not_of(" ", Rindex);
-    Zref = atof(line.substr(Rindex+1).c_str());
-    int is_indB = line.find("db");
-
-
-    while( getline(s2pfile, line) )
-    {//Looking for the start of the raw data
-
-        line = RemoveBlankSpaces(line);
-
-        if ((!line.compare(0,1, "!"))|| (line.length() == 1)) continue;
-        else break;
-
-
-    }
-
-    //DATA beginning.
-    //At this point, the number of frequency samples is not known, so it's better to
-    //push data into queues and then arrange it into armadillo structures
-    std::queue <double> frequency, S11M, S11A, S21M, S21A, S12M, S12A, S22M, S22A;
-    unsigned int qsize=0;
-
-    do
-    {
-        line = RemoveBlankSpaces(line);
-
-        if (line.empty()|| (line.length()==1))break;
-        if (line.at(0) == '!') break;//Comment
-
-        //Frequency
-        int index = line.find_first_of(" ");
-        if (index == -1)index = line.find_first_of("\t");
-        frequency.push(atof(line.substr(0,index).c_str()));
-        line.erase(0, index+1);
-
-
-        index = line.find_first_of(" ");
-        if (index == -1)index = line.find_first_of("\t");
-        S11M.push(atof(line.substr(0,index).c_str()));
-        line.erase(0, index+1);
-
-        index = line.find_first_of(" ");
-        if (index == -1)index = line.find_first_of("\t");
-        S11A.push(atof(line.substr(0,index).c_str()));
-        line.erase(0, index+1);
-
-        index = line.find_first_of(" ");
-        if (index == -1)index = line.find_first_of("\t");
-        S21M.push(atof(line.substr(0,index).c_str()));
-        line.erase(0, index+1);
-
-        index = line.find_first_of(" ");
-        if (index == -1)index = line.find_first_of("\t");
-        S21A.push(atof(line.substr(0,index).c_str()));
-        line.erase(0, index+1);
-
-        index = line.find_first_of(" ");
-        if (index == -1)index = line.find_first_of("\t");
-        S12M.push(atof(line.substr(0,index).c_str()));
-        line.erase(0, index+1);
-
-        index = line.find_first_of(" ");
-        if (index == -1)index = line.find_first_of("\t");
-        S12A.push(atof(line.substr(0,index).c_str()));
-        line.erase(0, index+1);
-
-        index = line.find_first_of(" ");
-        if (index == -1)index = line.find_first_of("\t");
-        S22M.push(atof(line.substr(0,index).c_str()));
-        line.erase(0, index+1);
-
-        index = line.find_first_of(" ");
-        if (index == -1)index = line.find_first_of("\t");
-        if (index == -1)index = line.find_first_of("\r");//End of the line
-        S22A.push(atof(line.substr(0,index).c_str()));
-        qsize++;
-    }while (std::getline(s2pfile, line));
-
-    vec freq(qsize);
-    cx_mat S(qsize, 4);
-    cx_mat Z(qsize, 4);
-    double phi, S11m, S11a, S21m, S21a, S12m, S12a, S22m, S22a;
-    for (unsigned int i = 0; i < qsize; i++)
-    {
-        freq(i) = freq_scale*frequency.front();
-        frequency.pop();
-
-        S11m = S11M.front();
-        S11a = S11A.front();
-        S11M.pop();
-        S11A.pop();
-        if (is_indB != -1) S11m = pow(10, .05*S11m);
-        phi = (datum::pi/180)*S11a;
-        S(i, 0) = cx_double(S11m,0)*cx_double(cos(phi), sin(phi));
-
-        S21m = S21M.front();
-        S21a = S21A.front();
-        S21M.pop();
-        S21A.pop();
-        if (is_indB != -1) S21m = pow(10, .05*S21m);
-        phi = (datum::pi/180)*S21a;
-        S(i, 1) = cx_double(S21m,0)*cx_double(cos(phi), sin(phi));
-
-
-        S12m = S12M.front();
-        S12a = S12A.front();
-        S12M.pop();
-        S12A.pop();
-        if (is_indB != -1) S12m = pow(10, .05*S12m);
-        phi = (datum::pi/180)*S12a;
-        S(i, 2) = cx_double(S12m,0)*cx_double(cos(phi), sin(phi));
-
-
-
-        S22m = S22M.front();
-        S22a = S22A.front();
-        S22M.pop();
-        S22A.pop();
-        if (is_indB != -1) S22m = pow(10, .05*S22m);
-        phi = (datum::pi/180)*S22a;
-        S(i, 3) = cx_double(S22m,0)*cx_double(cos(phi), sin(phi));
-
-        cx_double K = cx_double(Zref,0)/((1.-S(i,0))*(1.-S(i,3))-S(i,1)*S(i,2));
-        Z(i, 0) = K*((1.+S(i, 0))*(1.-S(i,3))+S(i,1)*S(i,2));//Z11
-        Z(i, 1) = K*2.*S(i,1);//Z21
-        Z(i, 2) = K*2.*S(i,2);//Z12
-        Z(i, 3) = K*((1.-S(i, 0))*(1.+S(i,3))+S(i,1)*S(i,2));//Z22
-
-        //cout << freq.at(i) << " " << Z.row(i) << endl;
-
-    }
-
-
-    DATA.freq = freq;
-    DATA.S = S;
-    DATA.Z = Z;
-
-    return DATA;
-}
-
-// Load and source impedances may be sampled at different frequencies. It is essential to resample them
-// using the same frequency basis. This requires interpolation of complex data. It would be desirable to use
-// spline or cubic interpolation, but it seems that they are not implemented in Armadillo
-int MatchingNetwork::ResampleImpedances()
-{
-    //Check if the inputs lie in the s2p measurements
-    double fmin, fmax;
-    (fS.min() > fL.min()) ? fmin = fS.min() : fmin = fL.min();
-    (fS.max() > fL.max()) ? fmax = fL.max() : fmax = fS.max();
-
-    int N = f_matching.n_rows;
-    if (fmin > f_matching.min())
-    {
-        std::cout << "Warning: Data not found for "<< f_matching.min() << ". The lowest frequency was set to "<< fmin << std::endl;
-        f_matching  = linspace(fmin,f_matching.max(), N);
-    }
-    if (fmax < f_matching.max())
-    {
-        std::cout << "Warning: Data not found for "<< f_matching.max() << ". The highest frequency was set to "<< fmax << std::endl;
-        f_matching  = linspace(f_matching.min(), fmax, N);
-    }
-
-    double N_density = N/(f_matching.max() - f_matching.min());
-    f_analysis = linspace(fmin, fmax, floor(N_density*(fmax-fmin)));
-
-
-    //Impedance interpolation. This way both vector have the same frequency basis.
-    vec ZS_r(real(ZS)), ZS_i(imag(ZS)), ZL_r(real(ZL)), ZL_i(imag(ZL));
-    vec ZS_inter_R, ZS_inter_I, ZL_inter_R, ZL_inter_I;
-    interp1(fS, ZS_r, f_analysis, ZS_inter_R);//Armadillo lacks of spline interpolation
-    interp1(fS, ZS_i, f_analysis, ZS_inter_I);
-    interp1(fL, ZL_r, f_analysis, ZL_inter_R);
-    interp1(fL, ZL_i, f_analysis, ZL_inter_I);
-
-    ZS = cx_vec(ZS_inter_R, ZS_inter_I);
-    ZL = cx_vec(ZL_inter_R, ZL_inter_I);
-
-    //Select impedance values at the matching band
-    vec V = abs(f_analysis - f_matching.min());
-    uvec v_find = find(V < V.min()+1e-3);
-    int index1 = v_find.at(0);
-    V = abs(f_analysis - f_matching.max());
-    v_find = find(V < V.min()+1e-3);
-    int index2 = v_find.at(0);
-
-    ZS_matching = ZS.rows(index1, index2);
-    ZL_matching = ZL.rows(index1, index2);
-
-    //Now, it's needed to u-pdate the matching band according to f_analysis values
-    f_matching = f_analysis.rows(index1, index2);
-    return 0;
-}
-
-
-// Returns the S matrix at a given frequency
-cx_mat MatchingNetwork::getSparams(rowvec x, cx_double zs, cx_double zl, double f)
-{
-    cx_mat ABCD = getABCDmatrix(x, f);
-    cx_mat S;
-    S << -1 << -1 << endr << -1 << -1 << endr;
-    //Convert ABCD to S parameters
-    S(0,0) = (ABCD(0,0)*zl+ABCD(0,1)-ABCD(1,0)*conj(zs)*zl-ABCD(1,1)*conj(zs))/(ABCD(0,0)*zl+ABCD(0,1)+ABCD(1,0)*zs*zl+ABCD(1,1)*zs);
-    S(0,1) = (2.*(ABCD(0,0)*ABCD(1,1)-ABCD(0,1)*ABCD(1,0))*sqrt(real(zs)*real(zl)))/(ABCD(0,0)*zl+ABCD(0,1)+ABCD(1,0)*zs*zl+ABCD(1,1)*zs);
-    S(1,0) = (2.*sqrt(real(zs)*real(zl)))/(ABCD(0,0)*zl+ABCD(0,1)+ABCD(1,0)*zs*zl+ABCD(1,1)*zs);
-    S(1,1) = (-ABCD(0,0)*conj(zl)+ABCD(0,1)-ABCD(1,0)*conj(zl)*zs+ABCD(1,1)*zs)/(ABCD(0,0)*zl+ABCD(0,1)+ABCD(1,0)*zs*zl+ABCD(1,1)*zs);
-    return S;
-}
-
-// Returns the ABCD matrix at a given frequency
-cx_mat MatchingNetwork::getABCDmatrix(rowvec x, double f)
-{
-    int element;
-    double w = 2*datum::pi*f;
-    double beta = w/c0;
-    cx_double gamma = cx_double(0, beta);
-    cx_mat ABCD, ABCD_t;
-    ABCD << 1 << 0 << endr << 0 << 1 << endr;
-
-    unsigned int i, k;
-
-    for (i = 0, k=0; i < topology.length(); i++, k++)
-    {
-        element = atoi(topology.substr(i,1).c_str());
-        switch(element)
-        {
-        case 0: ABCD_t << 1. << cx_double(0,w*x.at(k)) << endr << 0 << 1. << endr;
-            break;
-        case 1: ABCD_t << 1. << cx_double(0,-1/(w*x.at(k))) << endr << 0 << 1. << endr;
-            break;
-        case 2: ABCD_t << 1. << 0 << endr << cx_double(0,-1./(w*x.at(k))) << 1. << endr;
-            break;
-        case 3: ABCD_t << 1. << 0 << endr << cx_double(0, w*x.at(k)) << 1. << endr;
-            break;
-        case 4: ABCD_t << cosh(gamma*x.at(k+1)) << x.at(k)*sinh(gamma*x.at(k+1)) << endr << sinh(gamma*x.at(k+1))/x(k) << cosh(gamma*x.at(k+1)) << endr;
-            k++;//It involves two parameters, so we need to skip the next index
-            break;
-        case 5: ABCD_t << 1. << 0 << endr << (tanh(gamma*x.at(k+1)))/x.at(k) << 1. << endr;
-            k++;
-            break;
-        case 6: ABCD_t << 1. << 0 << endr << 1./(x.at(k)*tanh(gamma*x.at(k+1))) << 1. << endr;
-            k++;
-            break;
-        default: return -ABCD.eye();
-        }
-
-        ABCD = ABCD*ABCD_t;
-    }
-    return ABCD;
-}
 
 // Sets the maximum number of iterations for the grid search engine
-int MatchingNetwork::SetMaxIterGridSearch(int max_iter)
+int GRABIM::SetMaxIterGridSearch(int max_iter)
 {
     Grid_MaxIter = max_iter;
     return 0;
 }
 
 // Sets the threshold of what the program consideres a good matching
-int MatchingNetwork::SetThreshold(double th)
+int GRABIM::SetThreshold(double th)
 {
     MatchingThreshold = th;
     return 0;
 }
 
 // Returns the matching threshold
-double MatchingNetwork::GetThreshold()
+double GRABIM::GetThreshold()
 {
     return MatchingThreshold;
 }
 
 
-GRABIM_Result MatchingNetwork::RunGRABIM()
+GRABIM_Result GRABIM::RunGRABIM()
 {
     GRABIM_Result Res;
-    double lambda4 = c0/(4.*mean(f_matching));
+    double meanf = .5*(freq.min()+freq.max());
+    double lambda4 = c0/(4.*meanf);
     if (!topology.compare("-1"))//The user did not entered any specific network, so it seems
     {//reasonable to try some typical wideband matching network
         rowvec Vopt, Vaux;
@@ -470,8 +123,8 @@ GRABIM_Result MatchingNetwork::RunGRABIM()
         }
 
         topology = "444";//3 cascaded lambda/4 sections
-        double meanZS = mean(real(ZS_matching));
-        double meanZL = mean(real(ZL_matching));
+        double meanZS = mean(real(ZS));
+        double meanZL = mean(real(ZL));
 
         if (meanZS < meanZL)
         {
@@ -634,18 +287,18 @@ GRABIM_Result MatchingNetwork::RunGRABIM()
     Res.nlopt_val = CandidateEval(Res.x_nlopt);
     Res.ZS = ZS;
     Res.ZL = ZL;
-    Res.f_analysis = f_analysis;
+    Res.freq = freq;
 
     //Initialize S param vectors
-    Res.S11_gridsearch=cx_vec(f_analysis,f_analysis);
-    Res.S21_gridsearch=cx_vec(f_analysis,f_analysis);
-    Res.S12_gridsearch=cx_vec(f_analysis,f_analysis);
-    Res.S22_gridsearch=cx_vec(f_analysis,f_analysis);
+    Res.S11_gridsearch=cx_vec(freq,freq);
+    Res.S21_gridsearch=cx_vec(freq,freq);
+    Res.S12_gridsearch=cx_vec(freq,freq);
+    Res.S22_gridsearch=cx_vec(freq,freq);
 
-    Res.S11_nlopt=cx_vec(f_analysis,f_analysis);
-    Res.S21_nlopt=cx_vec(f_analysis,f_analysis);
-    Res.S12_nlopt=cx_vec(f_analysis,f_analysis);
-    Res.S22_nlopt=cx_vec(f_analysis,f_analysis);
+    Res.S11_nlopt=cx_vec(freq,freq);
+    Res.S21_nlopt=cx_vec(freq,freq);
+    Res.S12_nlopt=cx_vec(freq,freq);
+    Res.S22_nlopt=cx_vec(freq,freq);
 
 
     //Generate S parameter results
@@ -653,31 +306,33 @@ GRABIM_Result MatchingNetwork::RunGRABIM()
     S_gridsearch << 1<<1<<endr << 1<<1<< endr;
     S_nlopt << 1<<1<<endr << 1<<1<< endr;
 
-    for (unsigned int i = 0; i < f_analysis.n_rows; i++)
+    SparEngine S2PEngine;
+
+    for (unsigned int i = 0; i < freq.n_rows; i++)
     {
         // Grid search
-        S_gridsearch = getSparams(Res.x_grid_search, ZS.at(i), ZL.at(i), f_analysis.at(i));
+        S_gridsearch = S2PEngine.getSparams(Res.x_grid_search, ZS.at(i), ZL.at(i), freq.at(i), topology);
         Res.S11_gridsearch.at(i) = S_gridsearch(0,0);
         Res.S21_gridsearch.at(i) = S_gridsearch(1,0);
         Res.S12_gridsearch.at(i) = S_gridsearch(0,1);
         Res.S22_gridsearch.at(i) = S_gridsearch(1,1);
 
         // NLopt
-        S_nlopt = getSparams(Res.x_nlopt, ZS.at(i), ZL.at(i), f_analysis.at(i));
+        S_nlopt = S2PEngine.getSparams(Res.x_nlopt, ZS.at(i), ZL.at(i), freq.at(i), topology);
         Res.S11_nlopt.at(i) = S_nlopt(0,0);
         Res.S21_nlopt.at(i) = S_nlopt(1,0);
         Res.S12_nlopt.at(i) = S_nlopt(0,1);
         Res.S22_nlopt.at(i) = S_nlopt(1,1);
     }
 
-
+    Res.topology = QString(topology.c_str());//Save network topology to create a Qucs schematic
 
     return Res;
 }
 
 
 
-rowvec MatchingNetwork::GridSearch()
+rowvec GRABIM::GridSearch()
 {
     vec delta_k, best, step;
     int dim = x_ini.n_cols;
@@ -789,9 +444,9 @@ rowvec MatchingNetwork::GridSearch()
 // to find a better or more realistic solution. In this sense, shunt elements
 // whose impedance exceeds 4kOhm are interpreted as open circuits, and conversely,
 // series components whose impedance is below 1 Ohm are treated as short circuits
-rowvec MatchingNetwork::InspectCandidate(rowvec xk)
+rowvec GRABIM::InspectCandidate(rowvec xk)
 {
-    double impedance, fmax = f_matching.max(), fmin = f_matching.min();
+    double impedance, fmax = freq.max(), fmin = freq.min();
     unsigned int element;
     double wmax =2*datum::pi*fmax, wmin =2*datum::pi*fmin;
     for (unsigned int i = 0; i < topology.length(); i++)
@@ -869,7 +524,7 @@ rowvec MatchingNetwork::InspectCandidate(rowvec xk)
 }
 
 
-mat MatchingNetwork::GeneratingMatrix(int dim)
+mat GRABIM::GeneratingMatrix(int dim)
 {
     mat C = zeros(dim, pow(2, dim)+1);
     for (int i = 0; i <dim; i++)
@@ -882,22 +537,23 @@ mat MatchingNetwork::GeneratingMatrix(int dim)
     return C;
 }
 
-double MatchingNetwork::CandidateEval(rowvec x)
+double GRABIM::CandidateEval(rowvec x)
 {
     double fobj = -1e3;
     cx_mat S, ABCD;
-    for (unsigned int i = 0; i < f_matching.n_rows; i++)
+    SparEngine S2PEngine;
+    for (unsigned int i = 0; i < freq.n_elem; i++)
     {
 
         if (ObjFun == ObjectiveFunction::NINF_S11dB)
         {
-            S = getSparams(x, ZS_matching.at(i), ZL_matching.at(i), f_matching.at(i));
+            S = S2PEngine.getSparams(x, ZS.at(i), ZL.at(i), freq.at(i), topology);
             if (abs(S(0,0)) > fobj) fobj = abs(S(0,0));
         }
         if (ObjFun == ObjectiveFunction::NINF_POWERTRANS)
         {
-            ABCD = getABCDmatrix(x, f_matching.at(i));
-            fobj = CalcInvPowerTransfer(ABCD, ZS_matching.at(i), ZL_matching.at(i));
+            ABCD = S2PEngine.getABCDmatrix(x, freq.at(i), topology);
+            fobj = CalcInvPowerTransfer(ABCD, ZS.at(i), ZL.at(i));
         }
     }
     if (ObjFun == ObjectiveFunction::NINF_S11dB)fobj = 20*log10(fobj);//|grad{log(x)}| > |grad{x}| when x < 1;
@@ -906,8 +562,8 @@ double MatchingNetwork::CandidateEval(rowvec x)
 
 
 typedef struct NLoptData {
-    vec f_matching;
-    cx_vec ZS_matching, ZL_matching;
+    vec freq;
+    cx_vec ZS, ZL;
     std::string topology;
     ObjectiveFunction objf;
 
@@ -915,13 +571,13 @@ typedef struct NLoptData {
 
 double myfunc(const std::vector<double> &x, std::vector<double> &grad, void *n)
 {
-    MatchingNetwork M;
+    GRABIM M;
     rowvec x_ = ones(1,x.size());
     NLoptData * N = (NLoptData *) n;
     M.SetTopology(N->topology);
-    M.SetMatchingBand(N->f_matching.min(), N->f_matching.max(), N->f_matching.n_rows);
-    M.SetSourceImpedance(N->ZS_matching, N->f_matching);
-    M.SetLoadImpedance(N->ZL_matching, N->f_matching);
+    M.SetFrequency(N->freq);
+    M.SetSourceImpedance(N->ZS);
+    M.SetLoadImpedance(N->ZL);
     M.SetObjectiveFunction(N->objf);
     for (unsigned int i = 0; i < x.size(); i++) x_.at(i) = x[i];
 
@@ -930,25 +586,26 @@ double myfunc(const std::vector<double> &x, std::vector<double> &grad, void *n)
     return eval;
 }
 
-rowvec MatchingNetwork::LocalOptimiser(rowvec x_grid)
+// Given the grid optimum, the local optimiser is supposed to refine the search
+rowvec GRABIM::LocalOptimiser(rowvec x_grid)
 {
     int dim = x_grid.n_cols;
     nlopt::opt opt(NLoptAlgo, dim);
     NLoptData n;
-    n.f_matching = f_matching;
     n.topology = topology;
-    n.ZL_matching = ZL_matching;
-    n.ZS_matching = ZS_matching;
+    n.ZL = ZL;
+    n.ZS = ZS;
     n.objf = ObjFun;
+    n.freq = freq;
     opt.set_min_objective(myfunc, &n);
     opt.set_stopval(this->GetThreshold()-10);
     opt.set_maxeval(1e6);
-    opt.set_xtol_rel(1e-4);
+   // opt.set_xtol_rel(1e-4);
 
     //Bounds
     std::vector<double> lb(dim), ub(dim);
     unsigned int i, k;
-    for (i = 0, k=0; i < topology.length(); i++, k++)
+    for (i = 0, k=0; i < topology.length(); i++, k++)//Automatically generates the boundaries
     {
         int element = atoi(topology.substr(i,1).c_str());
         if (element < 4)
@@ -965,6 +622,7 @@ rowvec MatchingNetwork::LocalOptimiser(rowvec x_grid)
     }
 
 
+    // It seems that NLopt sometimes crashes because of the limits...
     // opt.set_lower_bounds(lb);
     // opt.set_upper_bounds(ub);
 
@@ -976,6 +634,7 @@ rowvec MatchingNetwork::LocalOptimiser(rowvec x_grid)
     nlopt::result result = opt.optimize(x, minf);
     std::cout << "NLopt status: " << std::endl;
 
+    //NLopt exit status
     switch(result)
     {
     //Success
@@ -1000,6 +659,8 @@ rowvec MatchingNetwork::LocalOptimiser(rowvec x_grid)
         break;
     case -4: std::cout << "Forced termination" <<std::endl;
         break;
+    case -5: std::cout << "Forced termination" <<std::endl;
+        break;
     }
 
     rowvec x_nlopt = ones(1, dim);
@@ -1009,33 +670,35 @@ rowvec MatchingNetwork::LocalOptimiser(rowvec x_grid)
 
 }
 
-
-int MatchingNetwork::SetNLoptAlg(nlopt::algorithm NLA)
+// Sets the local optimiser algorithm
+int GRABIM::SetNLoptAlg(nlopt::algorithm NLA)
 {
     NLoptAlgo = NLA;
     return 0;
 }
-
-nlopt::algorithm MatchingNetwork::GetNLoptAlg()
+//Gets the name of the local optimiser
+nlopt::algorithm GRABIM::GetNLoptAlg()
 {
     return NLoptAlgo;
 }
 
 
-int MatchingNetwork::SetObjectiveFunction(ObjectiveFunction of)
+// Sets the objective function. The problem can be thought in terms of either S11 or the inverse power transfer
+int GRABIM::SetObjectiveFunction(ObjectiveFunction of)
 {
     ObjFun = of;
     return 0;
 }
 
-ObjectiveFunction MatchingNetwork::GetObjectiveFunction()
+//Returns the objective function
+ObjectiveFunction GRABIM::GetObjectiveFunction()
 {
     return ObjFun;
 }
 
 // Inverse power transfer from ABCD matrix
 // [1] Eq (6.2.1), (6.2.2)
-double MatchingNetwork::CalcInvPowerTransfer(cx_mat ABCD, cx_double ZS, cx_double ZL)
+double GRABIM::CalcInvPowerTransfer(cx_mat ABCD, cx_double ZS, cx_double ZL)
 {
     cx_double p = real(ZS)*real(ZL) - imag(ZS)*imag(ZL);
     cx_double q = imag(ZS)*real(ZL) + imag(ZL)*real(ZS);
@@ -1043,3 +706,4 @@ double MatchingNetwork::CalcInvPowerTransfer(cx_mat ABCD, cx_double ZS, cx_doubl
     cx_double b = ABCD(0,1) + ABCD(1,0)*p + ABCD(1,1)*imag(ZS) + ABCD(0,0)*imag(ZL);
     return abs((a*a + b*b)/(4*real(ZS)*real(ZL)));
 }
+
