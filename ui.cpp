@@ -160,6 +160,7 @@ ui::ui()
        QucsCombo = new QComboBox();
        QucsCombo->addItem("0.0.19");
        QucsCombo->addItem("0.0.18");
+       QucsCombo->setEditable(true);
        QucsLayout->addWidget(QucsCombo);
 
 
@@ -226,7 +227,9 @@ void ui::SearchBestTopology_clicked()
 
 void ui::go_clicked()
 {
-    statusBar()->showMessage(tr("Running GRABIM..."));
+    QMessageBox::information(0, QObject::tr("Started"),
+                         QObject::tr("GRABIM has just started running. Please hang out with the terminal"));
+
 
     //Before starting the matching engine, we must ensure that the impedance data is already loaded
     if (SourceFile.isEmpty() && (FixedZSLineedit->text().isEmpty()))
@@ -407,8 +410,8 @@ void ui::go_clicked()
         GNUplot_path = QCoreApplication::applicationDirPath() + "GRABIM.dat";
     }
 
-    statusBar()->showMessage(tr("Finished. Please use GNUplot for displaying result"));
-
+    QMessageBox::information(0, QObject::tr("Finished"),
+                         QObject::tr("GRABIM has successfully finished. \nPlease execute: 'gnuplot plotscript' to take a look to the results.\nThe network has been copied into the clipboard as a Qucs netlist"));
 
     inout_operations.exportGNUplot(R, GNUplot_path.toStdString());
     inout_operations.ExportQucsSchematic(R);

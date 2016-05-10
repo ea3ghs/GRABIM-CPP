@@ -8,7 +8,7 @@ GRABIM::GRABIM()
     //S11 < 10 dB is considered as valid for common applications
 
     ObjFun = ObjectiveFunction::NINF_S11dB;//Sets the kind of objective functions. Everything seems to
-                                           //suggest that NINF_S11dB gives the best results
+    //suggest that NINF_S11dB gives the best results
     topology = "-1";//By default, the engine will search the optimum topology from the predefined set of circuit
     NLoptAlgo = nlopt::LN_NELDERMEAD;//By default, the local optimiser was chosen to be the Nelder-Mead algorithm
 }
@@ -91,194 +91,19 @@ double GRABIM::GetThreshold()
 GRABIM_Result GRABIM::RunGRABIM()
 {
     GRABIM_Result Res;
-    double meanf = .5*(freq.min()+freq.max());
-    double lambda4 = c0/(4.*meanf);
     if (!topology.compare("-1"))//The user did not entered any specific network, so it seems
     {//reasonable to try some typical wideband matching network
-        rowvec Vopt, Vaux;
+        rowvec Vopt;
         string candidate;
-        double gridtest, opttopo;
 
-        cout << "Grid search result for some common networks..." << endl;
-        topology = "313202";//PiCPiL
-        x_ini << 1e-12 << 1e-12 << 1e-12 << 1e-9 << 1e-9 << 1e-9;
-        Vaux = GridSearch();
-        gridtest = CandidateEval(Vaux);
-        candidate = topology;
-        opttopo = gridtest;
-        Vopt = Vaux;
-        cout << "PiCPiL: S11_min = " <<  gridtest << " dB" << endl;
-
-
-        topology = "202313";//PiLPiC
-        x_ini << 1e-9 << 1e-9 << 1e-9 << 1e-12 << 1e-12 << 1e-12;
-        Vaux = GridSearch();
-        gridtest = CandidateEval(Vaux);
-        cout << "PiLPiC: S11_min = " <<  gridtest << " dB" << endl;
-        if (gridtest < opttopo - 0.5)//It worths to change the topology if the new one improves the result significantly
-        {
-            candidate = topology;
-            opttopo = gridtest;
-            Vopt = Vaux;
-        }
-
-        topology = "444";//3 cascaded lambda/4 sections
-        double meanZS = mean(real(ZS));
-        double meanZL = mean(real(ZL));
-
-        if (meanZS < meanZL)
-        {
-            x_ini << 1.1*meanZS << lambda4<< .5*(meanZS+meanZL) << lambda4 << .9*meanZL << lambda4;
-        }
-        else
-        {
-            x_ini << 0.9*meanZS << lambda4<< .5*(meanZS+meanZL) << lambda4 << 1.1*meanZL << lambda4;
-        }
-        Vaux = GridSearch();
-        gridtest = CandidateEval(Vaux);
-        cout << "3-sections lambda/4: S11_min = " <<  gridtest << " dB" << endl;
-        if (gridtest < opttopo - 0.5)
-        {
-            candidate = topology;
-            opttopo = gridtest;
-            Vopt = Vaux;
-        }
-
-        topology = "546";//Open circuit stub + Transmission line + Short circuited stub
-        double meanZ = .5*(meanZS+meanZL);
-        x_ini << meanZ << lambda4 << meanZ << lambda4<< meanZ << lambda4;
-        Vaux = GridSearch();
-        gridtest = CandidateEval(Vaux);
-        cout << "OC stub + TL + SC stub: S11_min = " <<  gridtest << " dB" << endl;
-        if (gridtest < opttopo - 0.5)
-        {
-            candidate = topology;
-            opttopo = gridtest;
-            Vopt = Vaux;
-        }
-
-        topology = "645";//Short circuited stub + Transmission line + Open circuit stub
-        x_ini << meanZ << lambda4 << meanZ << lambda4<< meanZ << lambda4;
-        Vaux = GridSearch();
-        gridtest = CandidateEval(Vaux);
-        cout << "SC stub + TL + OC stub: S11_min = " <<  gridtest << " dB" << endl;
-        if (gridtest < opttopo - 0.5)
-        {
-            candidate = topology;
-            opttopo = gridtest;
-            Vopt = Vaux;
-        }
-
-
-        topology = "020313";
-        x_ini << 1e-9 << 1e-9 << 1e-9 << 1e-12 << 1e-12 << 1e-12;
-        Vaux = GridSearch();
-        gridtest = CandidateEval(Vaux);
-        cout << "TeeLPiC: S11_min = " <<  gridtest << " dB" << endl;
-        if (gridtest < opttopo - 0.5)
-        {
-            candidate = topology;
-            opttopo = gridtest;
-            Vopt = Vaux;
-        }
-
-
-        topology = "313020";
-        x_ini  << 1e-12 << 1e-12 << 1e-12 << 1e-9 << 1e-9 << 1e-9;
-        Vaux = GridSearch();
-        gridtest = CandidateEval(Vaux);
-        cout << "PiCTeeL: S11_min = " <<  gridtest << " dB" << endl;
-        if (gridtest < opttopo - 0.5)
-        {
-            candidate = topology;
-            opttopo = gridtest;
-            Vopt = Vaux;
-        }
-
-
-
-        topology = "03030";
-        x_ini << 1e-9 << 1e-12 << 1e-9 << 1e-12 << 1e-9;
-        Vaux = GridSearch();
-        gridtest = CandidateEval(Vaux);
-        cout << "Lowpass LC ladder: S11_min = " <<  gridtest << " dB" << endl;
-        if (gridtest < opttopo - 0.5)
-        {
-            candidate = topology;
-            opttopo = gridtest;
-            Vopt = Vaux;
-        }
-
-        topology = "43434";
-        x_ini << 75 << lambda4 << 1e-12 << 75 << lambda4  << 1e-12 << 75 << lambda4 ;
-        Vaux = GridSearch();
-        gridtest = CandidateEval(Vaux);
-        cout << "Lowpass TL-C ladder: S11_min = " <<  gridtest << " dB" << endl;
-        if (gridtest < opttopo - 0.5)
-        {
-            candidate = topology;
-            opttopo = gridtest;
-            Vopt = Vaux;
-        }
-
-
-        topology = "01230123";//BPP3
-        x_ini << 1e-9 << 1e-12 << 1e-9 << 1e-12<< 1e-9 << 1e-12<< 1e-9 << 1e-12;
-        Vaux = GridSearch();
-        gridtest = CandidateEval(Vaux);
-        cout << "BPP3: S11_min = " <<  gridtest << " dB" << endl;
-        if (gridtest < opttopo - 0.5)
-        {
-            candidate = topology;
-            opttopo = gridtest;
-            Vopt = Vaux;
-        }
-
-        topology = "23012301";//BPS3
-        x_ini << 1e-9 << 1e-12 << 1e-9 << 1e-12<< 1e-9 << 1e-12<< 1e-9 << 1e-12;
-        Vaux = GridSearch();
-        gridtest = CandidateEval(Vaux);
-        cout << "BPS3: S11_min = " <<  gridtest << " dB" << endl;
-        if (gridtest < opttopo - .5)
-        {
-            candidate = topology;
-            opttopo = gridtest;
-            Vopt = Vaux;
-        }
-
-
-        topology = "131020131";
-        x_ini << 1e-12 << 1e-12 << 1e-12 << 1e-9 << 1e-9 << 1e-9 << 1e-12 << 1e-12 << 1e-12;
-        Vaux = GridSearch();
-        gridtest = CandidateEval(Vaux);
-        cout << "TeeCTeeLTeeC: S11_min = " <<  gridtest << " dB" << endl;
-        if (gridtest < opttopo - .5)
-        {
-            candidate = topology;
-            opttopo = gridtest;
-            Vopt = Vaux;
-        }
-
+        SearchPredefinedTopologies(Vopt, candidate);
 
         topology = candidate;
         Res.x_grid_search = Vopt;
-
     }
     else//It builds an initial vector using default values 1nH for inductances, 1 pF for capacitors, 100 Ohm & lambda/4 for transmission lines
     {
-        queue <double> XINI;
-        for (unsigned int i = 0; i< topology.size();i++)
-        {
-            if ((!topology.substr(i,1).compare("0"))||(!topology.substr(i,1).compare("2"))) XINI.push(1e-9);
-            if ((!topology.substr(i,1).compare("1"))||(!topology.substr(i,1).compare("3"))) XINI.push(1e-12);
-            if ((!topology.substr(i,1).compare("4"))||(!topology.substr(i,1).compare("5"))||(!topology.substr(i,1).compare("6")))XINI.push(100),XINI.push(lambda4);
-        }
-        x_ini = ones(1, XINI.size());
-        for (unsigned int i = 0; i < x_ini.size();i++)
-        {
-            x_ini.at(i) = XINI.front();
-            XINI.pop();
-        }
+        AutoSetInitialPivot();
         Res.x_grid_search = GridSearch();
     }
 
@@ -439,6 +264,61 @@ rowvec GRABIM::GridSearch()
 }
 
 
+
+//This function searches the optimum over a predefined circuit topologies
+int GRABIM::SearchPredefinedTopologies(rowvec & Vopt, std::string & candidate)
+{
+    double gridtest, opttopo = 1e12;
+    std::ifstream TopologiesFile("predefined_topologies");//Tries to open the file.
+    std::string line, tag;
+    rowvec Vaux;
+    if(!TopologiesFile.is_open())//The data file cannot be opened => error
+    {
+        return -1;
+    }
+
+    cout << "Predefined networks..." << endl;
+
+    QStringList strlist;
+std:string aux;
+    while (std::getline(TopologiesFile, aux))
+    {
+        if (aux.empty())continue;
+        if (aux.substr(0,1).compare("#")==0)
+        {
+            tag = aux;
+            continue;
+        }
+        topology = aux;
+        std::getline(TopologiesFile, line);
+
+        if (!QString(line.c_str()).isEmpty())
+        {//Check whether the initial pivot is given in the script or not
+            strlist =  QString(line.c_str()).split(";");
+            x_ini.resize(1, strlist.count());
+            for (int i = 0; i < strlist.count(); i++)
+            {
+                x_ini.at(i) = strlist.at(i).toDouble();
+            }
+        }
+        else
+        {//The script does not provide an initial pivot, so we need to use
+         // the default one.
+            AutoSetInitialPivot();
+        }
+        Vaux = GridSearch();
+        gridtest = CandidateEval(Vaux);
+        cout << tag << ": S11_min = " <<  gridtest << " dB" << endl;
+
+        if (gridtest < opttopo - 0.5)//It worths to change the topology if the new one improves the result significantly
+        {
+            candidate = topology;
+            opttopo = gridtest;
+            Vopt = Vaux;
+        }
+    }
+}
+
 // This function checks whether the candidate vector contains some
 // irrelevant value or not. Unsignificant values may prevent the algorithm
 // to find a better or more realistic solution. In this sense, shunt elements
@@ -509,7 +389,7 @@ rowvec GRABIM::InspectCandidate(rowvec xk)
                 cout << "Warging: Topology changed. The new topology is: " << topology << endl;
             }
             continue;
-         default://It is a transmission line or a stub
+        default://It is a transmission line or a stub
             double zmax = max(abs(ZS));
             if (zmax < max(abs(ZL))) zmax = max(abs(ZL));
             if ((xk.at(i) > 5*zmax) || (xk.at(i+1) < 0))//Something is wrong...
@@ -520,7 +400,7 @@ rowvec GRABIM::InspectCandidate(rowvec xk)
 
         }
     }
-  return xk;
+    return xk;
 }
 
 
@@ -600,7 +480,7 @@ rowvec GRABIM::LocalOptimiser(rowvec x_grid)
     opt.set_min_objective(myfunc, &n);
     opt.set_stopval(this->GetThreshold()-10);
     opt.set_maxeval(1e6);
-   // opt.set_xtol_rel(1e-4);
+    // opt.set_xtol_rel(1e-4);
 
     //Bounds
     std::vector<double> lb(dim), ub(dim);
@@ -707,3 +587,36 @@ double GRABIM::CalcInvPowerTransfer(cx_mat ABCD, cx_double ZS, cx_double ZL)
     return abs((a*a + b*b)/(4*real(ZS)*real(ZL)));
 }
 
+
+
+
+
+void GRABIM::AutoSetInitialPivot()
+{
+    double meanf = .5*(freq.min()+freq.max());
+    double lambda4 = c0/(4.*meanf);
+    queue <double> XINI;
+    for (unsigned int i = 0; i< topology.size();i++)
+    {
+        if ((!topology.substr(i,1).compare("0"))||(!topology.substr(i,1).compare("2"))) XINI.push(1e-9);
+        if ((!topology.substr(i,1).compare("1"))||(!topology.substr(i,1).compare("3"))) XINI.push(1e-12);
+        if((!topology.substr(i,1).compare("5"))||(!topology.substr(i,1).compare("6")))XINI.push(real(mean(ZS+ZL))),XINI.push(lambda4);
+
+        if (!topology.substr(i,1).compare("4"))//Transmission line
+        {
+            // Here it is defined a linear impedance profile. In case the user selected 444, this tries
+            // works real-to-real impedance transformer. Luckily, GRABIM will find a better result
+            double Zi;
+            double m = (mean(real(ZL))-mean(real(ZS)))/topology.length();
+            Zi = m*i+mean(real(ZS));
+            XINI.push(Zi);
+            XINI.push(lambda4);
+        }
+    }
+    x_ini = ones(1, XINI.size());
+    for (unsigned int i = 0; i < x_ini.size();i++)
+    {
+        x_ini.at(i) = XINI.front();
+        XINI.pop();
+    }
+}

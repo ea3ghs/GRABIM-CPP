@@ -2,6 +2,24 @@
 
 SparEngine::SparEngine()
 {
+    preTopoList += "444";
+    preTopoList += "020313";
+    preTopoList += "313020";
+    preTopoList += "03030";
+    preTopoList += "313202";
+    preTopoList += "202313";
+    preTopoList += "03030";
+    preTopoList += "43434";
+    preTopoList += "01230123";
+    preTopoList += "23012301";
+    preTopoList += "12031203";
+    preTopoList += "21302130";
+    preTopoList += "03120312";
+    preTopoList += "30213021";
+    preTopoList += "30303030";
+    preTopoList += "03030303";
+    preTopoList += "12121212";
+    preTopoList += "21212121";
 }
 
 
@@ -32,6 +50,18 @@ cx_mat SparEngine::getABCDmatrix(rowvec x, double f, std::string topology)
 
     unsigned int i, k;
 
+
+
+     ABCD = PreComputedABCD(x, w, topology);
+     //cout << ABCD << endl << endl;
+     if (preTopoList.contains(QString(topology.c_str())))
+     {
+         return ABCD;
+     }
+
+     ABCD << 1 << 0 << endr << 0 << 1 << endr;
+
+
     for (i = 0, k=0; i < topology.length(); i++, k++)
     {
         element = atoi(topology.substr(i,1).c_str());
@@ -59,5 +89,174 @@ cx_mat SparEngine::getABCDmatrix(rowvec x, double f, std::string topology)
 
         ABCD = ABCD*ABCD_t;
     }
+  //  cout << ABCD << endl;
+        return ABCD;
+}
+
+// This function contains the ABCD matrices of the most common wideband matching networks. This way, it is not neccessay to
+// compute the overall ABCD matrix as a matrix product of single ABCD matrices and consequently speeds up execution
+cx_mat SparEngine::PreComputedABCD(rowvec x, double w, std::string topology)
+{
+    cx_mat ABCD(2,2);
+    cx_double I = cx_double(0,1);
+
+    ABCD << -1 << -1 << endr << -1 << -1 << endr;
+
+    if (!topology.compare("444"))// Lowpass TL-C ladder
+    {
+        ABCD(0,0) = -(x.at(0)*x.at(2)*cos(x.at(3)*w/c0)*sin(x.at(1)*w/c0)*sin(x.at(5)*w/c0) + x.at(2)*x.at(2)*cos(x.at(1)*w/c0)*sin(x.at(3)*w/c0)*sin(x.at(5)*w/c0) - (x.at(2)*cos(x.at(1)*w/c0)*cos(x.at(3)*w/c0)*cos(x.at(5)*w/c0) - x.at(0)*cos(x.at(5)*w/c0)*sin(x.at(1)*w/c0)*sin(x.at(3)*w/c0))*x.at(4))/(x.at(2)*x.at(4));
+        ABCD(0,1) = (-I*x.at(0)*x.at(2)*cos(x.at(3)*w/c0)*cos(x.at(5)*w/c0)*sin(x.at(1)*w/c0) - I*x.at(2)*x.at(2)*cos(x.at(1)*w/c0)*cos(x.at(5)*w/c0)*sin(x.at(3)*w/c0) + (-I*x.at(2)*cos(x.at(1)*w/c0)*cos(x.at(3)*w/c0)*sin(x.at(5)*w/c0) + I*x.at(0)*sin(x.at(1)*w/c0)*sin(x.at(3)*w/c0)*sin(x.at(5)*w/c0))*x.at(4))/x.at(2);
+        ABCD(1,0) = (-I*x.at(0)*x.at(2)*cos(x.at(1)*w/c0)*cos(x.at(3)*w/c0)*sin(x.at(5)*w/c0) + I*x.at(2)*x.at(2)*sin(x.at(1)*w/c0)*sin(x.at(3)*w/c0)*sin(x.at(5)*w/c0) + (-I*x.at(2)*cos(x.at(3)*w/c0)*cos(x.at(5)*w/c0)*sin(x.at(1)*w/c0) - I*x.at(0)*cos(x.at(1)*w/c0)*cos(x.at(5)*w/c0)*sin(x.at(3)*w/c0))*x.at(4))/(x.at(0)*x.at(2)*x.at(4));
+        ABCD(1,1) = (x.at(0)*x.at(2)*cos(x.at(1)*w/c0)*cos(x.at(3)*w/c0)*cos(x.at(5)*w/c0) - x.at(2)*x.at(2)*cos(x.at(5)*w/c0)*sin(x.at(1)*w/c0)*sin(x.at(3)*w/c0) - (x.at(2)*cos(x.at(3)*w/c0)*sin(x.at(1)*w/c0)*sin(x.at(5)*w/c0) + x.at(0)*cos(x.at(1)*w/c0)*sin(x.at(3)*w/c0)*sin(x.at(5)*w/c0))*x.at(4))/(x.at(0)*x.at(2));
+        return ABCD;
+    }
+
+    if (!topology.compare("03030"))
+    {
+        ABCD(0,0) = -(x.at(1)*w*w + x.at(3)*w*w)*x.at(0) + (x.at(1)*x.at(3)*x.at(0)*w*w*w*w - x.at(3)*w*w)*x.at(2) + 1;
+        ABCD(0,1) = (-I*x.at(1)*x.at(0)*w*w*w + I*w)*x.at(2) + ((-I*x.at(1)*w*w*w - I*x.at(3)*w*w*w)*x.at(0) + (I*x.at(1)*x.at(3)*x.at(0)*w*w*w*w*w - I*x.at(3)*w*w*w)*x.at(2) + I*w)*x.at(4) + I*x.at(0)*w;
+        ABCD(1,0) = -I*x.at(1)*x.at(3)*x.at(2)*w*w*w + I*x.at(1)*w + I*x.at(3)*w;
+        ABCD(1,1) =  -x.at(1)*x.at(2)*w*w + (x.at(1)*x.at(3)*x.at(2)*w*w*w*w - x.at(1)*w*w - x.at(3)*w*w)*x.at(4) + 1;
+        return ABCD;
+    }
+
+    if (!topology.compare("313202"))
+    {
+        ABCD(0,0) = (((x.at(2)*w*w + x.at(1)*w*w)*x.at(3) - 1)*x.at(5) + ((x.at(2)*w*w + x.at(1)*w*w)*x.at(3) - 1)*x.at(4) - x.at(3))/(x.at(1)*x.at(3)*x.at(5)*w*w);
+        ABCD(0,1) = (((I*x.at(2)*w*w + I*x.at(1)*w*w)*x.at(3) - I)*x.at(4) - I*x.at(3))/(x.at(1)*x.at(3)*w);
+        ABCD(1,0) = ((-I*x.at(0) - I*x.at(1))*x.at(3) + ((I*x.at(0)*x.at(2)*w*w + (I*x.at(0)*w*w + I*x.at(2)*w*w)*x.at(1))*x.at(3) - I*x.at(0) - I*x.at(1))*x.at(5) + ((I*x.at(0)*x.at(2)*w*w + (I*x.at(0)*w*w + I*x.at(2)*w*w)*x.at(1))*x.at(3) - I*x.at(0) - I*x.at(1))*x.at(4))/(x.at(1)*x.at(3)*x.at(5)*w);
+        ABCD(1,1) = ((x.at(0) + x.at(1))*x.at(3) - ((x.at(0)*x.at(2)*w*w + (x.at(0)*w*w + x.at(2)*w*w)*x.at(1))*x.at(3) - x.at(0) - x.at(1))*x.at(4))/(x.at(1)*x.at(3));
+        return ABCD;
+    }
+
+    if (!topology.compare("202313"))
+    {
+        ABCD(0,0) = ((x.at(5) + x.at(4))*x.at(2) - ((x.at(3)*x.at(5)*w*w + (x.at(3)*w*w + x.at(5)*w*w)*x.at(4))*x.at(2) - x.at(5) - x.at(4))*x.at(1))/(x.at(4)*x.at(2));
+        ABCD(0,1) = (((I*x.at(3)*w*w + I*x.at(4)*w*w)*x.at(2) - I)*x.at(1) - I*x.at(2))/(x.at(4)*x.at(2)*w);
+        ABCD(1,0) = ((-I*x.at(5) - I*x.at(4))*x.at(0) + ((I*x.at(3)*x.at(5)*w*w + (I*x.at(3)*w*w + I*x.at(5)*w*w)*x.at(4))*x.at(0) - I*x.at(5) - I*x.at(4))*x.at(2) + ((I*x.at(3)*x.at(5)*w*w + (I*x.at(3)*w*w + I*x.at(5)*w*w)*x.at(4))*x.at(2) - I*x.at(5) - I*x.at(4))*x.at(1))/(x.at(4)*x.at(0)*x.at(2)*w);
+        ABCD(1,1) = (((x.at(3)*w*w + x.at(4)*w*w)*x.at(0) - 1)*x.at(2) + ((x.at(3)*w*w + x.at(4)*w*w)*x.at(2) - 1)*x.at(1) - x.at(0))/(x.at(4)*x.at(0)*x.at(2)*w*w);
+        return ABCD;
+    }
+
+    if (!topology.compare("020313"))
+    {
+        ABCD(0,0) = ((x.at(5) + x.at(4))*x.at(1) - ((x.at(3)*x.at(5)*w*w + (x.at(3)*w*w + x.at(5)*w*w)*x.at(4))*x.at(1) - x.at(5) - x.at(4))*x.at(0) - ((x.at(3)*x.at(5)*w*w + (x.at(3)*w*w + x.at(5)*w*w)*x.at(4))*x.at(1) + (x.at(3)*x.at(5)*w*w + (x.at(3)*w*w + x.at(5)*w*w)*x.at(4))*x.at(0))*x.at(2))/(x.at(4)*x.at(1));
+        ABCD(0,1) = (((I*x.at(3)*w*w + I*x.at(4)*w*w)*x.at(1) - I)*x.at(0) + ((I*x.at(3)*w*w + I*x.at(4)*w*w)*x.at(1) + (I*x.at(3)*w*w + I*x.at(4)*w*w)*x.at(0))*x.at(2) - I*x.at(1))/(x.at(4)*x.at(1)*w);
+        ABCD(1,0) = ((I*x.at(3)*x.at(5)*w*w + (I*x.at(3)*w*w + I*x.at(5)*w*w)*x.at(4))*x.at(1) + (I*x.at(3)*x.at(5)*w*w + (I*x.at(3)*w*w + I*x.at(5)*w*w)*x.at(4))*x.at(2) - I*x.at(5) - I*x.at(4))/(x.at(4)*x.at(1)*w);
+        ABCD(1,1) = ((x.at(3)*w*w + x.at(4)*w*w)*x.at(1) + (x.at(3)*w*w + x.at(4)*w*w)*x.at(2) - 1)/(x.at(4)*x.at(1)*w*w);
+        return ABCD;
+    }
+
+    if (!topology.compare("313020"))
+    {
+        ABCD(0,0) = ((x.at(2)*w*w + x.at(1)*w*w)*x.at(4) + (x.at(2)*w*w + x.at(1)*w*w)*x.at(3) - 1)/(x.at(1)*x.at(4)*w*w);
+        ABCD(0,1) = ((I*x.at(2)*w*w + I*x.at(1)*w*w)*x.at(4)*x.at(3) + ((I*x.at(2)*w*w + I*x.at(1)*w*w)*x.at(4) + (I*x.at(2)*w*w + I*x.at(1)*w*w)*x.at(3) - I)*x.at(5) - I*x.at(4))/(x.at(1)*x.at(4)*w);
+        ABCD(1,0) = ((I*x.at(0)*x.at(2)*w*w + (I*x.at(0)*w*w + I*x.at(2)*w*w)*x.at(1))*x.at(4) + (I*x.at(0)*x.at(2)*w*w + (I*x.at(0)*w*w + I*x.at(2)*w*w)*x.at(1))*x.at(3) - I*x.at(0) - I*x.at(1))/(x.at(1)*x.at(4)*w);
+        ABCD(1,1) = -((x.at(0)*x.at(2)*w*w + (x.at(0)*w*w + x.at(2)*w*w)*x.at(1))*x.at(4)*x.at(3) - (x.at(0) + x.at(1))*x.at(4) + ((x.at(0)*x.at(2)*w*w + (x.at(0)*w*w + x.at(2)*w*w)*x.at(1))*x.at(4) + (x.at(0)*x.at(2)*w*w + (x.at(0)*w*w + x.at(2)*w*w)*x.at(1))*x.at(3) - x.at(0) - x.at(1))*x.at(5))/(x.at(1)*x.at(4));
+        return ABCD;
+    }
+/*
+    if (!topology.compare("43434"))// Lowpass TL-C ladder
+    {
+        ABCD(0,0) = -(x.at(0)*x.at(3)*cos(x.at(4)*w/c0)*sin(x.at(1)*w/c0)*sin(x.at(7)*w/c0) + (x.at(2)*x.at(0)*w*sin(x.at(1)*w/c0)*sin(x.at(4)*w/c0)*sin(x.at(7)*w/c0) + cos(x.at(1)*w/c0)*sin(x.at(4)*w/c0)*sin(x.at(7)*w/c0))*x.at(3)*x.at(3) + (x.at(0)*cos(x.at(7)*w/c0)*sin(x.at(1)*w/c0)*sin(x.at(4)*w/c0) - (x.at(2)*x.at(5)*x.at(0)*w*w*cos(x.at(7)*w/c0)*sin(x.at(1)*w/c0)*sin(x.at(4)*w/c0) + x.at(5)*w*cos(x.at(1)*w/c0)*cos(x.at(7)*w/c0)*sin(x.at(4)*w/c0))*x.at(3)*x.at(3) - ((x.at(2)*w + x.at(5)*w)*x.at(0)*cos(x.at(4)*w/c0)*cos(x.at(7)*w/c0)*sin(x.at(1)*w/c0) + cos(x.at(1)*w/c0)*cos(x.at(4)*w/c0)*cos(x.at(7)*w/c0))*x.at(3))*x.at(6))/(x.at(3)*x.at(6));
+        ABCD(0,1) = (-I*x.at(0)*x.at(3)*cos(x.at(4)*w/c0)*cos(x.at(7)*w/c0)*sin(x.at(1)*w/c0) - (I*x.at(2)*x.at(0)*w*cos(x.at(7)*w/c0)*sin(x.at(1)*w/c0)*sin(x.at(4)*w/c0) + I*cos(x.at(1)*w/c0)*cos(x.at(7)*w/c0)*sin(x.at(4)*w/c0))*x.at(3)*x.at(3) + (I*x.at(0)*sin(x.at(1)*w/c0)*sin(x.at(4)*w/c0)*sin(x.at(7)*w/c0) - (I*x.at(2)*x.at(5)*x.at(0)*w*w*sin(x.at(1)*w/c0)*sin(x.at(4)*w/c0)*sin(x.at(7)*w/c0) + I*x.at(5)*w*cos(x.at(1)*w/c0)*sin(x.at(4)*w/c0)*sin(x.at(7)*w/c0))*x.at(3)*x.at(3) - ((I*x.at(2)*w + I*x.at(5)*w)*x.at(0)*cos(x.at(4)*w/c0)*sin(x.at(1)*w/c0)*sin(x.at(7)*w/c0) + I*cos(x.at(1)*w/c0)*cos(x.at(4)*w/c0)*sin(x.at(7)*w/c0))*x.at(3))*x.at(6))/x.at(3);
+        ABCD(1,0) = (-I*x.at(0)*x.at(3)*cos(x.at(1)*w/c0)*cos(x.at(4)*w/c0)*sin(x.at(7)*w/c0) + (-I*x.at(2)*x.at(0)*w*cos(x.at(1)*w/c0)*sin(x.at(4)*w/c0)*sin(x.at(7)*w/c0) + I*sin(x.at(1)*w/c0)*sin(x.at(4)*w/c0)*sin(x.at(7)*w/c0))*x.at(3)*x.at(3) + (-I*x.at(0)*cos(x.at(1)*w/c0)*cos(x.at(7)*w/c0)*sin(x.at(4)*w/c0) + (I*x.at(2)*x.at(5)*x.at(0)*w*w*cos(x.at(1)*w/c0)*cos(x.at(7)*w/c0)*sin(x.at(4)*w/c0) - I*x.at(5)*w*cos(x.at(7)*w/c0)*sin(x.at(1)*w/c0)*sin(x.at(4)*w/c0))*x.at(3)*x.at(3) + ((I*x.at(2)*w + I*x.at(5)*w)*x.at(0)*cos(x.at(1)*w/c0)*cos(x.at(4)*w/c0)*cos(x.at(7)*w/c0) - I*cos(x.at(4)*w/c0)*cos(x.at(7)*w/c0)*sin(x.at(1)*w/c0))*x.at(3))*x.at(6))/(x.at(0)*x.at(3)*x.at(6));
+        ABCD(1,1) = (x.at(0)*x.at(3)*cos(x.at(1)*w/c0)*cos(x.at(4)*w/c0)*cos(x.at(7)*w/c0) + (x.at(2)*x.at(0)*w*cos(x.at(1)*w/c0)*cos(x.at(7)*w/c0)*sin(x.at(4)*w/c0) - cos(x.at(7)*w/c0)*sin(x.at(1)*w/c0)*sin(x.at(4)*w/c0))*x.at(3)*x.at(3) - (x.at(0)*cos(x.at(1)*w/c0)*sin(x.at(4)*w/c0)*sin(x.at(7)*w/c0) - (x.at(2)*x.at(5)*x.at(0)*w*w*cos(x.at(1)*w/c0)*sin(x.at(4)*w/c0)*sin(x.at(7)*w/c0) - x.at(5)*w*sin(x.at(1)*w/c0)*sin(x.at(4)*w/c0)*sin(x.at(7)*w/c0))*x.at(3)*x.at(3) - ((x.at(2)*w + x.at(5)*w)*x.at(0)*cos(x.at(1)*w/c0)*cos(x.at(4)*w/c0)*sin(x.at(7)*w/c0) - cos(x.at(4)*w/c0)*sin(x.at(1)*w/c0)*sin(x.at(7)*w/c0))*x.at(3))*x.at(6))/(x.at(0)*x.at(3));
+        return ABCD;
+    }
+*/
+    if (!topology.compare("01230123")) //BPP3
+    {
+        ABCD(0,0) = -((x.at(3)*w*w + x.at(1)*w*w + x.at(5)*w*w)*x.at(2) + (x.at(7)*w*w + x.at(5)*w*w - (x.at(3)*x.at(7)*w*w*w*w + x.at(7)*x.at(1)*w*w*w*w + (x.at(3)*w*w*w*w + x.at(7)*w*w*w*w + x.at(1)*w*w*w*w)*x.at(5))*x.at(2))*x.at(6) + (x.at(1)*w*w - (x.at(3)*x.at(1)*w*w*w*w + x.at(1)*x.at(5)*w*w*w*w)*x.at(2) - (x.at(7)*x.at(1)*w*w*w*w + x.at(1)*x.at(5)*w*w*w*w - (x.at(3)*x.at(7)*x.at(1)*w*w*w*w*w*w + (x.at(3)*w*w*w*w*w*w + x.at(7)*w*w*w*w*w*w)*x.at(1)*x.at(5))*x.at(2))*x.at(6))*x.at(0) - ((x.at(3)*w*w*w*w + x.at(1)*w*w*w*w)*x.at(5)*x.at(2) - x.at(5)*w*w + (x.at(7)*x.at(5)*w*w*w*w - (x.at(3)*x.at(7)*w*w*w*w*w*w + x.at(7)*x.at(1)*w*w*w*w*w*w)*x.at(5)*x.at(2))*x.at(6) - (x.at(3)*x.at(1)*x.at(5)*x.at(2)*w*w*w*w*w*w - x.at(1)*x.at(5)*w*w*w*w - (x.at(3)*x.at(7)*x.at(1)*x.at(5)*x.at(2)*w*w*w*w*w*w*w*w - x.at(7)*x.at(1)*x.at(5)*w*w*w*w*w*w)*x.at(6))*x.at(0))*x.at(4) - 1)/(x.at(1)*x.at(5)*x.at(2)*x.at(6)*w*w*w*w);
+        ABCD(0,1) = -((I*x.at(3)*w*w + I*x.at(1)*w*w + I*x.at(5)*w*w)*x.at(2) + (I*x.at(1)*w*w + (-I*x.at(3)*x.at(1)*w*w*w*w - I*x.at(1)*x.at(5)*w*w*w*w)*x.at(2))*x.at(0) + ((-I*x.at(3)*w*w*w*w - I*x.at(1)*w*w*w*w)*x.at(5)*x.at(2) + I*x.at(5)*w*w + (I*x.at(3)*x.at(1)*x.at(5)*x.at(2)*w*w*w*w*w*w - I*x.at(1)*x.at(5)*w*w*w*w)*x.at(0))*x.at(4) - I)/(x.at(1)*x.at(5)*x.at(2)*w*w*w);
+        ABCD(1,0) = -((I*x.at(3)*w*w + I*x.at(5)*w*w)*x.at(2) + (I*x.at(7)*w*w + I*x.at(5)*w*w + (-I*x.at(3)*x.at(7)*w*w*w*w + (-I*x.at(3)*w*w*w*w - I*x.at(7)*w*w*w*w)*x.at(5))*x.at(2))*x.at(6) + (-I*x.at(3)*x.at(5)*x.at(2)*w*w*w*w + I*x.at(5)*w*w + (I*x.at(3)*x.at(7)*x.at(5)*x.at(2)*w*w*w*w*w*w - I*x.at(7)*x.at(5)*w*w*w*w)*x.at(6))*x.at(4) - I)/(x.at(5)*x.at(2)*x.at(6)*w*w*w);
+        ABCD(1,1) = ((x.at(3)*w*w + x.at(5)*w*w)*x.at(2) - (x.at(3)*x.at(5)*x.at(2)*w*w*w*w - x.at(5)*w*w)*x.at(4) - 1)/(x.at(5)*x.at(2)*w*w);
+        return ABCD;
+    }
+
+    if (!topology.compare("23012301")) //BPS3
+    {
+        ABCD(0,0) = ((x.at(5)*w*w + x.at(3)*w*w)*x.at(4) - (x.at(5)*x.at(3)*x.at(4)*w*w*w*w - x.at(3)*w*w)*x.at(2) - 1)/(x.at(3)*x.at(4)*w*w);
+        ABCD(0,1) = -((I*x.at(5)*w*w + I*x.at(3)*w*w + I*x.at(7)*w*w)*x.at(4) + (I*x.at(3)*w*w + (-I*x.at(5)*x.at(3)*w*w*w*w - I*x.at(3)*x.at(7)*w*w*w*w)*x.at(4))*x.at(2) + ((-I*x.at(5)*w*w*w*w - I*x.at(3)*w*w*w*w)*x.at(7)*x.at(4) + I*x.at(7)*w*w + (I*x.at(5)*x.at(3)*x.at(7)*x.at(4)*w*w*w*w*w*w - I*x.at(3)*x.at(7)*w*w*w*w)*x.at(2))*x.at(6) - I)/(x.at(3)*x.at(7)*x.at(4)*w*w*w);
+        ABCD(1,0) = -((I*x.at(1)*w*w + I*x.at(3)*w*w)*x.at(0) + (I*x.at(5)*w*w + I*x.at(3)*w*w + (-I*x.at(1)*x.at(5)*w*w*w*w + (-I*x.at(1)*w*w*w*w - I*x.at(5)*w*w*w*w)*x.at(3))*x.at(0))*x.at(4) + (-I*x.at(1)*x.at(3)*x.at(0)*w*w*w*w + I*x.at(3)*w*w + (I*x.at(1)*x.at(5)*x.at(3)*x.at(0)*w*w*w*w*w*w - I*x.at(5)*x.at(3)*w*w*w*w)*x.at(4))*x.at(2) - I)/(x.at(3)*x.at(0)*x.at(4)*w*w*w);
+        ABCD(1,1) = -((x.at(1)*w*w + x.at(3)*w*w)*x.at(0) + (x.at(5)*w*w + x.at(3)*w*w + x.at(7)*w*w - (x.at(1)*x.at(5)*w*w*w*w + (x.at(1)*w*w*w*w + x.at(5)*w*w*w*w)*x.at(3) + (x.at(1)*w*w*w*w + x.at(3)*w*w*w*w)*x.at(7))*x.at(0))*x.at(4) - (x.at(1)*x.at(3)*x.at(0)*w*w*w*w - x.at(3)*w*w + (x.at(5)*x.at(3)*w*w*w*w + x.at(3)*x.at(7)*w*w*w*w - (x.at(1)*x.at(5)*x.at(3)*w*w*w*w*w*w + x.at(1)*x.at(3)*x.at(7)*w*w*w*w*w*w)*x.at(0))*x.at(4))*x.at(2) - ((x.at(1)*w*w*w*w + x.at(3)*w*w*w*w)*x.at(7)*x.at(0) - x.at(7)*w*w - ((x.at(1)*x.at(5)*w*w*w*w*w*w + (x.at(1)*w*w*w*w*w*w + x.at(5)*w*w*w*w*w*w)*x.at(3))*x.at(7)*x.at(0) - (x.at(5)*w*w*w*w + x.at(3)*w*w*w*w)*x.at(7))*x.at(4) - (x.at(1)*x.at(3)*x.at(7)*x.at(0)*w*w*w*w*w*w - x.at(3)*x.at(7)*w*w*w*w - (x.at(1)*x.at(5)*x.at(3)*x.at(7)*x.at(0)*w*w*w*w*w*w*w*w - x.at(5)*x.at(3)*x.at(7)*w*w*w*w*w*w)*x.at(4))*x.at(2))*x.at(6) - 1)/(x.at(3)*x.at(7)*x.at(0)*x.at(4)*w*w*w*w);
+        return ABCD;
+    }
+
+    if (!topology.compare("12031203")) //LPHHP
+    {
+        ABCD(0,0) = -((x.at(3)*w*w + x.at(0)*w*w + x.at(4)*w*w)*x.at(1) + (x.at(7)*w*w + x.at(4)*w*w - (x.at(3)*x.at(7)*w*w*w*w + x.at(7)*x.at(0)*w*w*w*w + (x.at(3)*w*w*w*w + x.at(7)*w*w*w*w + x.at(0)*w*w*w*w)*x.at(4))*x.at(1))*x.at(5) + (x.at(3)*w*w + x.at(4)*w*w - (x.at(3)*x.at(0)*w*w*w*w + x.at(0)*x.at(4)*w*w*w*w)*x.at(1) - (x.at(3)*x.at(7)*w*w*w*w + (x.at(3)*w*w*w*w + x.at(7)*w*w*w*w)*x.at(4) - (x.at(3)*x.at(7)*x.at(0)*w*w*w*w*w*w + (x.at(3)*w*w*w*w*w*w + x.at(7)*w*w*w*w*w*w)*x.at(0)*x.at(4))*x.at(1))*x.at(5))*x.at(2) + (x.at(7)*w*w - (x.at(3)*x.at(7)*w*w*w*w + x.at(7)*x.at(0)*w*w*w*w + x.at(7)*x.at(4)*w*w*w*w)*x.at(1) - (x.at(7)*x.at(4)*w*w*w*w - (x.at(3)*x.at(7)*w*w*w*w*w*w + x.at(7)*x.at(0)*w*w*w*w*w*w)*x.at(4)*x.at(1))*x.at(5) - (x.at(3)*x.at(7)*w*w*w*w + x.at(7)*x.at(4)*w*w*w*w - (x.at(3)*x.at(7)*x.at(0)*w*w*w*w*w*w + x.at(7)*x.at(0)*x.at(4)*w*w*w*w*w*w)*x.at(1) + (x.at(3)*x.at(7)*x.at(0)*x.at(4)*x.at(1)*w*w*w*w*w*w*w*w - x.at(3)*x.at(7)*x.at(4)*w*w*w*w*w*w)*x.at(5))*x.at(2))*x.at(6) - 1)/(x.at(0)*x.at(4)*x.at(1)*x.at(5)*w*w*w*w);
+        ABCD(0,1) = -((I*x.at(3)*w*w + I*x.at(4)*w*w + (-I*x.at(3)*x.at(0)*w*w*w*w - I*x.at(0)*x.at(4)*w*w*w*w)*x.at(1))*x.at(5)*x.at(2) + ((I*x.at(3)*w*w + I*x.at(0)*w*w + I*x.at(4)*w*w)*x.at(1) - I)*x.at(5) + ((I*x.at(3)*w*w + I*x.at(0)*w*w + I*x.at(4)*w*w)*x.at(1) + ((-I*x.at(3)*w*w*w*w - I*x.at(0)*w*w*w*w)*x.at(4)*x.at(1) + I*x.at(4)*w*w)*x.at(5) + (I*x.at(3)*w*w + I*x.at(4)*w*w + (-I*x.at(3)*x.at(0)*w*w*w*w - I*x.at(0)*x.at(4)*w*w*w*w)*x.at(1) + (I*x.at(3)*x.at(0)*x.at(4)*x.at(1)*w*w*w*w*w*w - I*x.at(3)*x.at(4)*w*w*w*w)*x.at(5))*x.at(2) - I)*x.at(6))/(x.at(0)*x.at(4)*x.at(1)*x.at(5)*w*w*w);
+        ABCD(1,0) = -((I*x.at(3)*w*w + I*x.at(4)*w*w)*x.at(1) + (I*x.at(7)*w*w + I*x.at(4)*w*w + (-I*x.at(3)*x.at(7)*w*w*w*w + (-I*x.at(3)*w*w*w*w - I*x.at(7)*w*w*w*w)*x.at(4))*x.at(1))*x.at(5) + (I*x.at(3)*w*w + I*x.at(4)*w*w + (-I*x.at(3)*x.at(7)*w*w*w*w + (-I*x.at(3)*w*w*w*w - I*x.at(7)*w*w*w*w)*x.at(4))*x.at(5))*x.at(2) + (I*x.at(7)*w*w + (-I*x.at(3)*x.at(7)*w*w*w*w - I*x.at(7)*x.at(4)*w*w*w*w)*x.at(1) + (I*x.at(3)*x.at(7)*x.at(4)*x.at(1)*w*w*w*w*w*w - I*x.at(7)*x.at(4)*w*w*w*w)*x.at(5) + (I*x.at(3)*x.at(7)*x.at(4)*x.at(5)*w*w*w*w*w*w - I*x.at(3)*x.at(7)*w*w*w*w - I*x.at(7)*x.at(4)*w*w*w*w)*x.at(2))*x.at(6) - I)/(x.at(4)*x.at(1)*x.at(5)*w*w*w);
+        ABCD(1,1) = ((x.at(3)*w*w + x.at(4)*w*w)*x.at(5)*x.at(2) + ((x.at(3)*w*w + x.at(4)*w*w)*x.at(1) - 1)*x.at(5) + ((x.at(3)*w*w + x.at(4)*w*w)*x.at(1) - (x.at(3)*x.at(4)*x.at(1)*w*w*w*w - x.at(4)*w*w)*x.at(5) - (x.at(3)*x.at(4)*x.at(5)*w*w*w*w - x.at(3)*w*w - x.at(4)*w*w)*x.at(2) - 1)*x.at(6))/(x.at(4)*x.at(1)*x.at(5)*w*w);
+        return ABCD;
+    }
+
+    if (!topology.compare("21302130")) //LPHPS
+    {
+        ABCD(0,0) = ((x.at(2)*x.at(6)*w*w + x.at(6)*x.at(1)*w*w + (x.at(2)*w*w + x.at(6)*w*w + x.at(1)*w*w)*x.at(5))*x.at(4) + (x.at(2)*x.at(6)*w*w + x.at(6)*x.at(1)*w*w - (x.at(2)*x.at(6)*w*w*w*w + x.at(6)*x.at(1)*w*w*w*w)*x.at(5)*x.at(4) + (x.at(2)*w*w + x.at(1)*w*w)*x.at(5))*x.at(3) - x.at(6) - x.at(5))/(x.at(1)*x.at(5)*x.at(4)*w*w);
+        ABCD(0,1) = -((I*x.at(2)*w*w + I*x.at(1)*w*w + I*x.at(5)*w*w)*x.at(4) + ((-I*x.at(2)*w*w*w*w - I*x.at(1)*w*w*w*w)*x.at(5)*x.at(4) + I*x.at(2)*w*w + I*x.at(1)*w*w)*x.at(3) + (I*x.at(6)*w*w + I*x.at(5)*w*w + (-I*x.at(2)*x.at(6)*w*w*w*w - I*x.at(6)*x.at(1)*w*w*w*w + (-I*x.at(2)*w*w*w*w - I*x.at(6)*w*w*w*w - I*x.at(1)*w*w*w*w)*x.at(5))*x.at(4) + (-I*x.at(2)*x.at(6)*w*w*w*w - I*x.at(6)*x.at(1)*w*w*w*w + (I*x.at(2)*x.at(6)*w*w*w*w*w*w + I*x.at(6)*x.at(1)*w*w*w*w*w*w)*x.at(5)*x.at(4) + (-I*x.at(2)*w*w*w*w - I*x.at(1)*w*w*w*w)*x.at(5))*x.at(3))*x.at(7) - I)/(x.at(1)*x.at(5)*x.at(4)*w*w*w);
+        ABCD(1,0) = -((I*x.at(6)*x.at(1)*w*w + I*x.at(1)*x.at(5)*w*w)*x.at(0) + (I*x.at(2)*x.at(6)*w*w + I*x.at(6)*x.at(1)*w*w + (I*x.at(2)*w*w + I*x.at(6)*w*w + I*x.at(1)*w*w)*x.at(5) + (-I*x.at(2)*x.at(6)*x.at(1)*w*w*w*w + (-I*x.at(2)*w*w*w*w - I*x.at(6)*w*w*w*w)*x.at(1)*x.at(5))*x.at(0))*x.at(4) + (I*x.at(2)*x.at(6)*w*w + I*x.at(6)*x.at(1)*w*w + (I*x.at(2)*w*w + I*x.at(1)*w*w)*x.at(5) + (-I*x.at(2)*x.at(6)*x.at(1)*w*w*w*w - I*x.at(2)*x.at(1)*x.at(5)*w*w*w*w)*x.at(0) + (I*x.at(2)*x.at(6)*x.at(1)*x.at(5)*x.at(0)*w*w*w*w*w*w + (-I*x.at(2)*x.at(6)*w*w*w*w - I*x.at(6)*x.at(1)*w*w*w*w)*x.at(5))*x.at(4))*x.at(3) - I*x.at(6) - I*x.at(5))/(x.at(1)*x.at(5)*x.at(0)*x.at(4)*w*w*w);
+        ABCD(1,1) = -(x.at(1)*x.at(0)*w*w + (x.at(2)*w*w + x.at(1)*w*w + x.at(5)*w*w - (x.at(2)*x.at(1)*w*w*w*w + x.at(1)*x.at(5)*w*w*w*w)*x.at(0))*x.at(4) - (x.at(2)*x.at(1)*x.at(0)*w*w*w*w - x.at(2)*w*w - x.at(1)*w*w - (x.at(2)*x.at(1)*x.at(5)*x.at(0)*w*w*w*w*w*w - (x.at(2)*w*w*w*w + x.at(1)*w*w*w*w)*x.at(5))*x.at(4))*x.at(3) + (x.at(6)*w*w + x.at(5)*w*w - (x.at(6)*x.at(1)*w*w*w*w + x.at(1)*x.at(5)*w*w*w*w)*x.at(0) - (x.at(2)*x.at(6)*w*w*w*w + x.at(6)*x.at(1)*w*w*w*w + (x.at(2)*w*w*w*w + x.at(6)*w*w*w*w + x.at(1)*w*w*w*w)*x.at(5) - (x.at(2)*x.at(6)*x.at(1)*w*w*w*w*w*w + (x.at(2)*w*w*w*w*w*w + x.at(6)*w*w*w*w*w*w)*x.at(1)*x.at(5))*x.at(0))*x.at(4) - (x.at(2)*x.at(6)*w*w*w*w + x.at(6)*x.at(1)*w*w*w*w + (x.at(2)*w*w*w*w + x.at(1)*w*w*w*w)*x.at(5) - (x.at(2)*x.at(6)*x.at(1)*w*w*w*w*w*w + x.at(2)*x.at(1)*x.at(5)*w*w*w*w*w*w)*x.at(0) + (x.at(2)*x.at(6)*x.at(1)*x.at(5)*x.at(0)*w*w*w*w*w*w*w*w - (x.at(2)*x.at(6)*w*w*w*w*w*w + x.at(6)*x.at(1)*w*w*w*w*w*w)*x.at(5))*x.at(4))*x.at(3))*x.at(7) - 1)/(x.at(1)*x.at(5)*x.at(0)*x.at(4)*w*w*w*w);
+        return ABCD;
+    }
+
+    if (!topology.compare("03120312")) //HPLPP
+    {
+        ABCD(0,0) = -((x.at(5)*w*w + x.at(2)*w*w + x.at(6)*w*w)*x.at(3) - ((x.at(5)*w*w*w*w + x.at(2)*w*w*w*w)*x.at(6)*x.at(3) - x.at(6)*w*w)*x.at(7) + (x.at(1)*w*w + x.at(2)*w*w - (x.at(1)*x.at(5)*w*w*w*w + (x.at(1)*w*w*w*w + x.at(5)*w*w*w*w)*x.at(2) + (x.at(1)*w*w*w*w + x.at(2)*w*w*w*w)*x.at(6))*x.at(3) + ((x.at(1)*x.at(5)*w*w*w*w*w*w + (x.at(1)*w*w*w*w*w*w + x.at(5)*w*w*w*w*w*w)*x.at(2))*x.at(6)*x.at(3) - (x.at(1)*w*w*w*w + x.at(2)*w*w*w*w)*x.at(6))*x.at(7))*x.at(0) + (x.at(5)*w*w + x.at(6)*w*w - (x.at(5)*x.at(2)*w*w*w*w + x.at(2)*x.at(6)*w*w*w*w)*x.at(3) + (x.at(5)*x.at(2)*x.at(6)*x.at(3)*w*w*w*w*w*w - x.at(5)*x.at(6)*w*w*w*w)*x.at(7) - (x.at(1)*x.at(5)*w*w*w*w + x.at(5)*x.at(2)*w*w*w*w + (x.at(1)*w*w*w*w + x.at(2)*w*w*w*w)*x.at(6) - (x.at(1)*x.at(5)*x.at(2)*w*w*w*w*w*w + x.at(1)*x.at(2)*x.at(6)*w*w*w*w*w*w)*x.at(3) + (x.at(1)*x.at(5)*x.at(2)*x.at(6)*x.at(3)*w*w*w*w*w*w*w*w - (x.at(1)*x.at(5)*w*w*w*w*w*w + x.at(5)*x.at(2)*w*w*w*w*w*w)*x.at(6))*x.at(7))*x.at(0))*x.at(4) - 1)/(x.at(2)*x.at(6)*x.at(3)*x.at(7)*w*w*w*w);
+        ABCD(0,1) = -((I*x.at(5)*w*w + I*x.at(2)*w*w + I*x.at(6)*w*w)*x.at(3) + (I*x.at(1)*w*w + I*x.at(2)*w*w + (-I*x.at(1)*x.at(5)*w*w*w*w + (-I*x.at(1)*w*w*w*w - I*x.at(5)*w*w*w*w)*x.at(2) + (-I*x.at(1)*w*w*w*w - I*x.at(2)*w*w*w*w)*x.at(6))*x.at(3))*x.at(0) + (I*x.at(5)*w*w + I*x.at(6)*w*w + (-I*x.at(5)*x.at(2)*w*w*w*w - I*x.at(2)*x.at(6)*w*w*w*w)*x.at(3) + (-I*x.at(1)*x.at(5)*w*w*w*w - I*x.at(5)*x.at(2)*w*w*w*w + (-I*x.at(1)*w*w*w*w - I*x.at(2)*w*w*w*w)*x.at(6) + (I*x.at(1)*x.at(5)*x.at(2)*w*w*w*w*w*w + I*x.at(1)*x.at(2)*x.at(6)*w*w*w*w*w*w)*x.at(3))*x.at(0))*x.at(4) - I)/(x.at(2)*x.at(6)*x.at(3)*w*w*w);
+        ABCD(1,0) = -((I*x.at(1)*x.at(5)*w*w + (I*x.at(1)*w*w + I*x.at(5)*w*w)*x.at(2) + (I*x.at(1)*w*w + I*x.at(2)*w*w)*x.at(6))*x.at(3) + ((-I*x.at(1)*x.at(5)*w*w*w*w + (-I*x.at(1)*w*w*w*w - I*x.at(5)*w*w*w*w)*x.at(2))*x.at(6)*x.at(3) + (I*x.at(1)*w*w + I*x.at(2)*w*w)*x.at(6))*x.at(7) + (I*x.at(1)*x.at(5)*w*w + I*x.at(5)*x.at(2)*w*w + (I*x.at(1)*w*w + I*x.at(2)*w*w)*x.at(6) + (-I*x.at(1)*x.at(5)*x.at(2)*w*w*w*w - I*x.at(1)*x.at(2)*x.at(6)*w*w*w*w)*x.at(3) + (I*x.at(1)*x.at(5)*x.at(2)*x.at(6)*x.at(3)*w*w*w*w*w*w + (-I*x.at(1)*x.at(5)*w*w*w*w - I*x.at(5)*x.at(2)*w*w*w*w)*x.at(6))*x.at(7))*x.at(4) - I*x.at(1) - I*x.at(2))/(x.at(2)*x.at(6)*x.at(3)*x.at(7)*w*w*w);
+        ABCD(1,1) = ((x.at(1)*x.at(5)*w*w + (x.at(1)*w*w + x.at(5)*w*w)*x.at(2) + (x.at(1)*w*w + x.at(2)*w*w)*x.at(6))*x.at(3) + (x.at(1)*x.at(5)*w*w + x.at(5)*x.at(2)*w*w + (x.at(1)*w*w + x.at(2)*w*w)*x.at(6) - (x.at(1)*x.at(5)*x.at(2)*w*w*w*w + x.at(1)*x.at(2)*x.at(6)*w*w*w*w)*x.at(3))*x.at(4) - x.at(1) - x.at(2))/(x.at(2)*x.at(6)*x.at(3)*w*w);
+        return ABCD;
+    }
+
+    if (!topology.compare("30213021")) //HPLPS
+    {
+        ABCD(0,0) = ((x.at(4)*w*w + x.at(3)*w*w)*x.at(2)*x.at(6) + (x.at(3)*x.at(2)*w*w - (x.at(4)*x.at(3)*x.at(2)*w*w*w*w - x.at(4)*w*w - x.at(3)*w*w)*x.at(6) - 1)*x.at(1) + ((x.at(4)*w*w + x.at(3)*w*w)*x.at(2) - (x.at(4)*x.at(3)*x.at(2)*w*w*w*w - x.at(4)*w*w - x.at(3)*w*w)*x.at(1))*x.at(5) - x.at(2))/(x.at(3)*x.at(2)*x.at(6)*w*w);
+        ABCD(0,1) = -((I*x.at(4)*w*w + I*x.at(3)*w*w + I*x.at(7)*w*w)*x.at(2)*x.at(6) + (I*x.at(3)*x.at(2)*w*w + (I*x.at(4)*w*w + I*x.at(3)*w*w + I*x.at(7)*w*w + (-I*x.at(4)*x.at(3)*w*w*w*w - I*x.at(3)*x.at(7)*w*w*w*w)*x.at(2))*x.at(6) - I)*x.at(1) + ((-I*x.at(4)*w*w*w*w - I*x.at(3)*w*w*w*w)*x.at(7)*x.at(2)*x.at(6) + (I*x.at(4)*w*w + I*x.at(3)*w*w)*x.at(2) + (-I*x.at(4)*x.at(3)*x.at(2)*w*w*w*w + I*x.at(4)*w*w + I*x.at(3)*w*w + (I*x.at(4)*x.at(3)*x.at(7)*x.at(2)*w*w*w*w*w*w + (-I*x.at(4)*w*w*w*w - I*x.at(3)*w*w*w*w)*x.at(7))*x.at(6))*x.at(1))*x.at(5) - I*x.at(2))/(x.at(3)*x.at(7)*x.at(2)*x.at(6)*w*w*w);
+        ABCD(1,0) = -((I*x.at(0)*w*w + I*x.at(3)*w*w)*x.at(2) + (I*x.at(4)*w*w + I*x.at(3)*w*w + (-I*x.at(0)*x.at(4)*w*w*w*w + (-I*x.at(0)*w*w*w*w - I*x.at(4)*w*w*w*w)*x.at(3))*x.at(2))*x.at(6) + (-I*x.at(0)*x.at(3)*x.at(2)*w*w*w*w + I*x.at(0)*w*w + (I*x.at(0)*x.at(4)*x.at(3)*x.at(2)*w*w*w*w*w*w - I*x.at(0)*x.at(4)*w*w*w*w - I*x.at(0)*x.at(3)*w*w*w*w)*x.at(6))*x.at(1) + (I*x.at(4)*w*w + I*x.at(3)*w*w + (-I*x.at(0)*x.at(4)*w*w*w*w + (-I*x.at(0)*w*w*w*w - I*x.at(4)*w*w*w*w)*x.at(3))*x.at(2) + (I*x.at(0)*x.at(4)*x.at(3)*x.at(2)*w*w*w*w*w*w - I*x.at(0)*x.at(4)*w*w*w*w - I*x.at(0)*x.at(3)*w*w*w*w)*x.at(1))*x.at(5) - I)/(x.at(3)*x.at(2)*x.at(6)*w*w*w);
+        ABCD(1,1) = -((x.at(0)*w*w + x.at(3)*w*w)*x.at(2) + (x.at(4)*w*w + x.at(3)*w*w + x.at(7)*w*w - (x.at(0)*x.at(4)*w*w*w*w + (x.at(0)*w*w*w*w + x.at(4)*w*w*w*w)*x.at(3) + (x.at(0)*w*w*w*w + x.at(3)*w*w*w*w)*x.at(7))*x.at(2))*x.at(6) - (x.at(0)*x.at(3)*x.at(2)*w*w*w*w - x.at(0)*w*w + (x.at(0)*x.at(4)*w*w*w*w + x.at(0)*x.at(3)*w*w*w*w + x.at(0)*x.at(7)*w*w*w*w - (x.at(0)*x.at(4)*x.at(3)*w*w*w*w*w*w + x.at(0)*x.at(3)*x.at(7)*w*w*w*w*w*w)*x.at(2))*x.at(6))*x.at(1) + (x.at(4)*w*w + x.at(3)*w*w - (x.at(0)*x.at(4)*w*w*w*w + (x.at(0)*w*w*w*w + x.at(4)*w*w*w*w)*x.at(3))*x.at(2) + ((x.at(0)*x.at(4)*w*w*w*w*w*w + (x.at(0)*w*w*w*w*w*w + x.at(4)*w*w*w*w*w*w)*x.at(3))*x.at(7)*x.at(2) - (x.at(4)*w*w*w*w + x.at(3)*w*w*w*w)*x.at(7))*x.at(6) + (x.at(0)*x.at(4)*x.at(3)*x.at(2)*w*w*w*w*w*w - x.at(0)*x.at(4)*w*w*w*w - x.at(0)*x.at(3)*w*w*w*w - (x.at(0)*x.at(4)*x.at(3)*x.at(7)*x.at(2)*w*w*w*w*w*w*w*w - (x.at(0)*x.at(4)*w*w*w*w*w*w + x.at(0)*x.at(3)*w*w*w*w*w*w)*x.at(7))*x.at(6))*x.at(1))*x.at(5) - 1)/(x.at(3)*x.at(7)*x.at(2)*x.at(6)*w*w*w*w);
+        return ABCD;
+    }
+
+
+    if (!topology.compare("30303030")) //LPS4
+    {
+        ABCD(0,0) = -(x.at(2)*w*w + x.at(4)*w*w + x.at(6)*w*w)*x.at(1) - (x.at(4)*w*w + x.at(6)*w*w - (x.at(2)*x.at(4)*w*w*w*w + x.at(2)*x.at(6)*w*w*w*w)*x.at(1))*x.at(3) + ((x.at(2)*w*w*w*w + x.at(4)*w*w*w*w)*x.at(6)*x.at(1) - x.at(6)*w*w - (x.at(2)*x.at(4)*x.at(6)*x.at(1)*w*w*w*w*w*w - x.at(4)*x.at(6)*w*w*w*w)*x.at(3))*x.at(5) + 1;
+        ABCD(0,1) = (-I*x.at(2)*x.at(1)*w*w*w + I*w)*x.at(3) + ((-I*x.at(2)*w*w*w - I*x.at(4)*w*w*w)*x.at(1) + (I*x.at(2)*x.at(4)*x.at(1)*w*w*w*w*w - I*x.at(4)*w*w*w)*x.at(3) + I*w)*x.at(5) + ((-I*x.at(2)*w*w*w - I*x.at(4)*w*w*w - I*x.at(6)*w*w*w)*x.at(1) + (-I*x.at(4)*w*w*w - I*x.at(6)*w*w*w + (I*x.at(2)*x.at(4)*w*w*w*w*w + I*x.at(2)*x.at(6)*w*w*w*w*w)*x.at(1))*x.at(3) + (-I*x.at(6)*w*w*w + (I*x.at(2)*w*w*w*w*w + I*x.at(4)*w*w*w*w*w)*x.at(6)*x.at(1) + (-I*x.at(2)*x.at(4)*x.at(6)*x.at(1)*w*w*w*w*w*w*w + I*x.at(4)*x.at(6)*w*w*w*w*w)*x.at(3))*x.at(5) + I*w)*x.at(7) + I*x.at(1)*w;
+        ABCD(1,0) = (-I*x.at(0)*x.at(2)*w*w*w - I*x.at(0)*x.at(4)*w*w*w - I*x.at(0)*x.at(6)*w*w*w)*x.at(1) + ((-I*x.at(0)*w*w*w - I*x.at(2)*w*w*w)*x.at(4) + (-I*x.at(0)*w*w*w - I*x.at(2)*w*w*w)*x.at(6) + (I*x.at(0)*x.at(2)*x.at(4)*w*w*w*w*w + I*x.at(0)*x.at(2)*x.at(6)*w*w*w*w*w)*x.at(1))*x.at(3) + ((I*x.at(0)*x.at(2)*w*w*w*w*w + I*x.at(0)*x.at(4)*w*w*w*w*w)*x.at(6)*x.at(1) + (-I*x.at(0)*w*w*w - I*x.at(2)*w*w*w - I*x.at(4)*w*w*w)*x.at(6) + (-I*x.at(0)*x.at(2)*x.at(4)*x.at(6)*x.at(1)*w*w*w*w*w*w*w + (I*x.at(0)*w*w*w*w*w + I*x.at(2)*w*w*w*w*w)*x.at(4)*x.at(6))*x.at(3))*x.at(5) + I*x.at(0)*w + I*x.at(2)*w + I*x.at(4)*w + I*x.at(6)*w;
+        ABCD(1,1) = -x.at(0)*x.at(1)*w*w + (x.at(0)*x.at(2)*x.at(1)*w*w*w*w - x.at(0)*w*w - x.at(2)*w*w)*x.at(3) - (x.at(0)*w*w + x.at(2)*w*w + x.at(4)*w*w - (x.at(0)*x.at(2)*w*w*w*w + x.at(0)*x.at(4)*w*w*w*w)*x.at(1) + (x.at(0)*x.at(2)*x.at(4)*x.at(1)*w*w*w*w*w*w - (x.at(0)*w*w*w*w + x.at(2)*w*w*w*w)*x.at(4))*x.at(3))*x.at(5) - (x.at(0)*w*w + x.at(2)*w*w + x.at(4)*w*w + x.at(6)*w*w - (x.at(0)*x.at(2)*w*w*w*w + x.at(0)*x.at(4)*w*w*w*w + x.at(0)*x.at(6)*w*w*w*w)*x.at(1) - ((x.at(0)*w*w*w*w + x.at(2)*w*w*w*w)*x.at(4) + (x.at(0)*w*w*w*w + x.at(2)*w*w*w*w)*x.at(6) - (x.at(0)*x.at(2)*x.at(4)*w*w*w*w*w*w + x.at(0)*x.at(2)*x.at(6)*w*w*w*w*w*w)*x.at(1))*x.at(3) + ((x.at(0)*x.at(2)*w*w*w*w*w*w + x.at(0)*x.at(4)*w*w*w*w*w*w)*x.at(6)*x.at(1) - (x.at(0)*w*w*w*w + x.at(2)*w*w*w*w + x.at(4)*w*w*w*w)*x.at(6) - (x.at(0)*x.at(2)*x.at(4)*x.at(6)*x.at(1)*w*w*w*w*w*w*w*w - (x.at(0)*w*w*w*w*w*w + x.at(2)*w*w*w*w*w*w)*x.at(4)*x.at(6))*x.at(3))*x.at(5))*x.at(7) + 1;
+        return ABCD;
+    }
+
+    if (!topology.compare("03030303")) //LPP4
+    {
+        ABCD(0,0) = -(x.at(1)*w*w + x.at(3)*w*w + x.at(5)*w*w + x.at(7)*w*w)*x.at(0) - (x.at(3)*w*w + x.at(5)*w*w + x.at(7)*w*w - (x.at(1)*x.at(3)*w*w*w*w + x.at(1)*x.at(5)*w*w*w*w + x.at(1)*x.at(7)*w*w*w*w)*x.at(0))*x.at(2) - (x.at(5)*w*w + x.at(7)*w*w - ((x.at(1)*w*w*w*w + x.at(3)*w*w*w*w)*x.at(5) + (x.at(1)*w*w*w*w + x.at(3)*w*w*w*w)*x.at(7))*x.at(0) - (x.at(3)*x.at(5)*w*w*w*w + x.at(3)*x.at(7)*w*w*w*w - (x.at(1)*x.at(3)*x.at(5)*w*w*w*w*w*w + x.at(1)*x.at(3)*x.at(7)*w*w*w*w*w*w)*x.at(0))*x.at(2))*x.at(4) + ((x.at(1)*w*w*w*w + x.at(3)*w*w*w*w + x.at(5)*w*w*w*w)*x.at(7)*x.at(0) - x.at(7)*w*w - ((x.at(1)*x.at(3)*w*w*w*w*w*w + x.at(1)*x.at(5)*w*w*w*w*w*w)*x.at(7)*x.at(0) - (x.at(3)*w*w*w*w + x.at(5)*w*w*w*w)*x.at(7))*x.at(2) + (x.at(5)*x.at(7)*w*w*w*w - (x.at(1)*w*w*w*w*w*w + x.at(3)*w*w*w*w*w*w)*x.at(5)*x.at(7)*x.at(0) + (x.at(1)*x.at(3)*x.at(5)*x.at(7)*x.at(0)*w*w*w*w*w*w*w*w - x.at(3)*x.at(5)*x.at(7)*w*w*w*w*w*w)*x.at(2))*x.at(4))*x.at(6) + 1;
+        ABCD(0,1) = (-I*x.at(1)*x.at(0)*w*w*w + I*w)*x.at(2) + ((-I*x.at(1)*w*w*w - I*x.at(3)*w*w*w)*x.at(0) + (I*x.at(1)*x.at(3)*x.at(0)*w*w*w*w*w - I*x.at(3)*w*w*w)*x.at(2) + I*w)*x.at(4) + ((-I*x.at(1)*w*w*w - I*x.at(3)*w*w*w - I*x.at(5)*w*w*w)*x.at(0) + (-I*x.at(3)*w*w*w - I*x.at(5)*w*w*w + (I*x.at(1)*x.at(3)*w*w*w*w*w + I*x.at(1)*x.at(5)*w*w*w*w*w)*x.at(0))*x.at(2) + (-I*x.at(5)*w*w*w + (I*x.at(1)*w*w*w*w*w + I*x.at(3)*w*w*w*w*w)*x.at(5)*x.at(0) + (-I*x.at(1)*x.at(3)*x.at(5)*x.at(0)*w*w*w*w*w*w*w + I*x.at(3)*x.at(5)*w*w*w*w*w)*x.at(2))*x.at(4) + I*w)*x.at(6) + I*x.at(0)*w;
+        ABCD(1,0) = (-I*x.at(1)*x.at(3)*w*w*w - I*x.at(1)*x.at(5)*w*w*w - I*x.at(1)*x.at(7)*w*w*w)*x.at(2) + ((-I*x.at(1)*w*w*w - I*x.at(3)*w*w*w)*x.at(5) + (-I*x.at(1)*w*w*w - I*x.at(3)*w*w*w)*x.at(7) + (I*x.at(1)*x.at(3)*x.at(5)*w*w*w*w*w + I*x.at(1)*x.at(3)*x.at(7)*w*w*w*w*w)*x.at(2))*x.at(4) + ((I*x.at(1)*x.at(3)*w*w*w*w*w + I*x.at(1)*x.at(5)*w*w*w*w*w)*x.at(7)*x.at(2) + (-I*x.at(1)*w*w*w - I*x.at(3)*w*w*w - I*x.at(5)*w*w*w)*x.at(7) + (-I*x.at(1)*x.at(3)*x.at(5)*x.at(7)*x.at(2)*w*w*w*w*w*w*w + (I*x.at(1)*w*w*w*w*w + I*x.at(3)*w*w*w*w*w)*x.at(5)*x.at(7))*x.at(4))*x.at(6) + I*x.at(1)*w + I*x.at(3)*w + I*x.at(5)*w + I*x.at(7)*w;
+        ABCD(1,1) = -x.at(1)*x.at(2)*w*w + (x.at(1)*x.at(3)*x.at(2)*w*w*w*w - x.at(1)*w*w - x.at(3)*w*w)*x.at(4) - (x.at(1)*w*w + x.at(3)*w*w + x.at(5)*w*w - (x.at(1)*x.at(3)*w*w*w*w + x.at(1)*x.at(5)*w*w*w*w)*x.at(2) + (x.at(1)*x.at(3)*x.at(5)*x.at(2)*w*w*w*w*w*w - (x.at(1)*w*w*w*w + x.at(3)*w*w*w*w)*x.at(5))*x.at(4))*x.at(6) + 1;
+        return ABCD;
+    }
+
+    if (!topology.compare("12121212")) //HPP
+    {
+        ABCD(0,0) = -((x.at(0)*w*w + x.at(2)*w*w)*x.at(1) + (x.at(2)*w*w + x.at(4)*w*w - (x.at(0)*x.at(2)*w*w*w*w + (x.at(0)*w*w*w*w + x.at(2)*w*w*w*w)*x.at(4))*x.at(1))*x.at(3) + (x.at(4)*w*w + x.at(6)*w*w - ((x.at(0)*w*w*w*w + x.at(2)*w*w*w*w)*x.at(4) + (x.at(0)*w*w*w*w + x.at(2)*w*w*w*w)*x.at(6))*x.at(1) - (x.at(2)*x.at(4)*w*w*w*w + (x.at(2)*w*w*w*w + x.at(4)*w*w*w*w)*x.at(6) - (x.at(0)*x.at(2)*x.at(4)*w*w*w*w*w*w + (x.at(0)*x.at(2)*w*w*w*w*w*w + (x.at(0)*w*w*w*w*w*w + x.at(2)*w*w*w*w*w*w)*x.at(4))*x.at(6))*x.at(1))*x.at(3))*x.at(5) - ((x.at(0)*w*w*w*w + x.at(2)*w*w*w*w)*x.at(6)*x.at(1) - x.at(6)*w*w - ((x.at(0)*x.at(2)*w*w*w*w*w*w + (x.at(0)*w*w*w*w*w*w + x.at(2)*w*w*w*w*w*w)*x.at(4))*x.at(6)*x.at(1) - (x.at(2)*w*w*w*w + x.at(4)*w*w*w*w)*x.at(6))*x.at(3) + (x.at(4)*x.at(6)*w*w*w*w - (x.at(0)*w*w*w*w*w*w + x.at(2)*w*w*w*w*w*w)*x.at(4)*x.at(6)*x.at(1) + (x.at(0)*x.at(2)*x.at(4)*x.at(6)*x.at(1)*w*w*w*w*w*w*w*w - x.at(2)*x.at(4)*x.at(6)*w*w*w*w*w*w)*x.at(3))*x.at(5))*x.at(7) - 1)/(x.at(0)*x.at(2)*x.at(4)*x.at(6)*x.at(1)*x.at(3)*x.at(5)*x.at(7)*w*w*w*w*w*w*w*w);
+        ABCD(0,1) = -((I*x.at(0)*w*w + I*x.at(2)*w*w)*x.at(1) + (I*x.at(2)*w*w + I*x.at(4)*w*w + (-I*x.at(0)*x.at(2)*w*w*w*w + (-I*x.at(0)*w*w*w*w - I*x.at(2)*w*w*w*w)*x.at(4))*x.at(1))*x.at(3) + (I*x.at(4)*w*w + I*x.at(6)*w*w + ((-I*x.at(0)*w*w*w*w - I*x.at(2)*w*w*w*w)*x.at(4) + (-I*x.at(0)*w*w*w*w - I*x.at(2)*w*w*w*w)*x.at(6))*x.at(1) + (-I*x.at(2)*x.at(4)*w*w*w*w + (-I*x.at(2)*w*w*w*w - I*x.at(4)*w*w*w*w)*x.at(6) + (I*x.at(0)*x.at(2)*x.at(4)*w*w*w*w*w*w + (I*x.at(0)*x.at(2)*w*w*w*w*w*w + (I*x.at(0)*w*w*w*w*w*w + I*x.at(2)*w*w*w*w*w*w)*x.at(4))*x.at(6))*x.at(1))*x.at(3))*x.at(5) - I)/(x.at(0)*x.at(2)*x.at(4)*x.at(6)*x.at(1)*x.at(3)*x.at(5)*w*w*w*w*w*w*w);
+        ABCD(1,0) = (-I*x.at(2)*x.at(1)*w*w - (-I*x.at(2)*x.at(4)*x.at(1)*w*w*w*w + I*x.at(2)*w*w + I*x.at(4)*w*w)*x.at(3) - (I*x.at(4)*w*w + I*x.at(6)*w*w + (-I*x.at(2)*x.at(4)*w*w*w*w - I*x.at(2)*x.at(6)*w*w*w*w)*x.at(1) + (I*x.at(2)*x.at(4)*x.at(6)*x.at(1)*w*w*w*w*w*w - I*x.at(2)*x.at(4)*w*w*w*w + (-I*x.at(2)*w*w*w*w - I*x.at(4)*w*w*w*w)*x.at(6))*x.at(3))*x.at(5) + (I*x.at(2)*x.at(6)*x.at(1)*w*w*w*w - I*x.at(6)*w*w - (I*x.at(2)*x.at(4)*x.at(6)*x.at(1)*w*w*w*w*w*w + (-I*x.at(2)*w*w*w*w - I*x.at(4)*w*w*w*w)*x.at(6))*x.at(3) - (I*x.at(2)*x.at(4)*x.at(6)*x.at(1)*w*w*w*w*w*w + I*x.at(2)*x.at(4)*x.at(6)*x.at(3)*w*w*w*w*w*w - I*x.at(4)*x.at(6)*w*w*w*w)*x.at(5))*x.at(7) + I)/(x.at(2)*x.at(4)*x.at(6)*x.at(1)*x.at(3)*x.at(5)*x.at(7)*w*w*w*w*w*w*w);
+        ABCD(1,1) = (x.at(2)*x.at(1)*w*w - (x.at(2)*x.at(4)*x.at(1)*w*w*w*w - x.at(2)*w*w - x.at(4)*w*w)*x.at(3) + (x.at(4)*w*w + x.at(6)*w*w - (x.at(2)*x.at(4)*w*w*w*w + x.at(2)*x.at(6)*w*w*w*w)*x.at(1) + (x.at(2)*x.at(4)*x.at(6)*x.at(1)*w*w*w*w*w*w - x.at(2)*x.at(4)*w*w*w*w - (x.at(2)*w*w*w*w + x.at(4)*w*w*w*w)*x.at(6))*x.at(3))*x.at(5) - 1)/(x.at(2)*x.at(4)*x.at(6)*x.at(1)*x.at(3)*x.at(5)*w*w*w*w*w*w);
+        return ABCD;
+    }
+
+    if (!topology.compare("21212121")) //HPS
+    {
+        ABCD(0,0) = ((x.at(1)*w*w + x.at(3)*w*w)*x.at(2) + (x.at(3)*w*w + x.at(5)*w*w - (x.at(1)*x.at(3)*w*w*w*w + (x.at(1)*w*w*w*w + x.at(3)*w*w*w*w)*x.at(5))*x.at(2))*x.at(4) - ((x.at(1)*w*w*w*w + x.at(3)*w*w*w*w)*x.at(5)*x.at(2) - x.at(5)*w*w - (x.at(1)*x.at(3)*x.at(5)*x.at(2)*w*w*w*w*w*w - x.at(3)*x.at(5)*w*w*w*w)*x.at(4))*x.at(6) - 1)/(x.at(1)*x.at(3)*x.at(5)*x.at(2)*x.at(4)*x.at(6)*w*w*w*w*w*w);
+        ABCD(0,1) = -((I*x.at(1)*w*w + I*x.at(3)*w*w)*x.at(2) + (I*x.at(3)*w*w + I*x.at(5)*w*w + (-I*x.at(1)*x.at(3)*w*w*w*w + (-I*x.at(1)*w*w*w*w - I*x.at(3)*w*w*w*w)*x.at(5))*x.at(2))*x.at(4) + (I*x.at(5)*w*w + I*x.at(7)*w*w + ((-I*x.at(1)*w*w*w*w - I*x.at(3)*w*w*w*w)*x.at(5) + (-I*x.at(1)*w*w*w*w - I*x.at(3)*w*w*w*w)*x.at(7))*x.at(2) + (-I*x.at(3)*x.at(5)*w*w*w*w + (-I*x.at(3)*w*w*w*w - I*x.at(5)*w*w*w*w)*x.at(7) + (I*x.at(1)*x.at(3)*x.at(5)*w*w*w*w*w*w + (I*x.at(1)*x.at(3)*w*w*w*w*w*w + (I*x.at(1)*w*w*w*w*w*w + I*x.at(3)*w*w*w*w*w*w)*x.at(5))*x.at(7))*x.at(2))*x.at(4))*x.at(6) - I)/(x.at(1)*x.at(3)*x.at(5)*x.at(7)*x.at(2)*x.at(4)*x.at(6)*w*w*w*w*w*w*w);
+        ABCD(1,0) = (-I*x.at(1)*x.at(0)*w*w - (-I*x.at(1)*x.at(3)*x.at(0)*w*w*w*w + I*x.at(1)*w*w + I*x.at(3)*w*w)*x.at(2) - (I*x.at(3)*w*w + I*x.at(5)*w*w + (-I*x.at(1)*x.at(3)*w*w*w*w - I*x.at(1)*x.at(5)*w*w*w*w)*x.at(0) + (I*x.at(1)*x.at(3)*x.at(5)*x.at(0)*w*w*w*w*w*w - I*x.at(1)*x.at(3)*w*w*w*w + (-I*x.at(1)*w*w*w*w - I*x.at(3)*w*w*w*w)*x.at(5))*x.at(2))*x.at(4) + (I*x.at(1)*x.at(5)*x.at(0)*w*w*w*w - I*x.at(5)*w*w - (I*x.at(1)*x.at(3)*x.at(5)*x.at(0)*w*w*w*w*w*w + (-I*x.at(1)*w*w*w*w - I*x.at(3)*w*w*w*w)*x.at(5))*x.at(2) - (I*x.at(1)*x.at(3)*x.at(5)*x.at(0)*w*w*w*w*w*w + I*x.at(1)*x.at(3)*x.at(5)*x.at(2)*w*w*w*w*w*w - I*x.at(3)*x.at(5)*w*w*w*w)*x.at(4))*x.at(6) + I)/(x.at(1)*x.at(3)*x.at(5)*x.at(0)*x.at(2)*x.at(4)*x.at(6)*w*w*w*w*w*w*w);
+        ABCD(1,1) = -(x.at(1)*x.at(0)*w*w - (x.at(1)*x.at(3)*x.at(0)*w*w*w*w - x.at(1)*w*w - x.at(3)*w*w)*x.at(2) + (x.at(3)*w*w + x.at(5)*w*w - (x.at(1)*x.at(3)*w*w*w*w + x.at(1)*x.at(5)*w*w*w*w)*x.at(0) + (x.at(1)*x.at(3)*x.at(5)*x.at(0)*w*w*w*w*w*w - x.at(1)*x.at(3)*w*w*w*w - (x.at(1)*w*w*w*w + x.at(3)*w*w*w*w)*x.at(5))*x.at(2))*x.at(4) + (x.at(5)*w*w + x.at(7)*w*w - (x.at(1)*x.at(5)*w*w*w*w + x.at(1)*x.at(7)*w*w*w*w)*x.at(0) - ((x.at(1)*w*w*w*w + x.at(3)*w*w*w*w)*x.at(5) + (x.at(1)*w*w*w*w + x.at(3)*w*w*w*w)*x.at(7) - (x.at(1)*x.at(3)*x.at(5)*w*w*w*w*w*w + x.at(1)*x.at(3)*x.at(7)*w*w*w*w*w*w)*x.at(0))*x.at(2) - (x.at(3)*x.at(5)*w*w*w*w + (x.at(3)*w*w*w*w + x.at(5)*w*w*w*w)*x.at(7) - (x.at(1)*x.at(3)*x.at(5)*w*w*w*w*w*w + (x.at(1)*x.at(3)*w*w*w*w*w*w + x.at(1)*x.at(5)*w*w*w*w*w*w)*x.at(7))*x.at(0) + (x.at(1)*x.at(3)*x.at(5)*x.at(7)*x.at(0)*w*w*w*w*w*w*w*w - x.at(1)*x.at(3)*x.at(5)*w*w*w*w*w*w - (x.at(1)*x.at(3)*w*w*w*w*w*w + (x.at(1)*w*w*w*w*w*w + x.at(3)*w*w*w*w*w*w)*x.at(5))*x.at(7))*x.at(2))*x.at(4))*x.at(6) - 1)/(x.at(1)*x.at(3)*x.at(5)*x.at(7)*x.at(0)*x.at(2)*x.at(4)*x.at(6)*w*w*w*w*w*w*w*w);
+        return ABCD;
+    }
+
     return ABCD;
 }
+
+

@@ -51,6 +51,8 @@ private:
 
     int SchematicParser(GRABIM_Result, int &, QString &, QString &, QString &);
     bool CreateSchematic(QString, QString, QString, QString);
+
+    int Nsamples;//Impedance samples within matching band
 };
 
 #endif // IO_H

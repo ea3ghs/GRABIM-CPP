@@ -5,7 +5,8 @@
 #include <armadillo>
 #include "sparengine.h"
 #include <queue>
-#include <qstring.h>
+#include <QString>
+#include <QStringList>
 
 using namespace arma;
 using namespace std;
@@ -31,6 +32,7 @@ typedef struct GRABIM_Result {
 
 //Reference:
 // [1] Broadband direct-coupled and RF matching networks. Thomas R. Cuthbert, 1999
+// [2] Broadband impedance matching - Fast and simple. Thomas R. Cuthbert. RF design. 1994
 class GRABIM
 {
     const double c0 = 299792458;//Speed of light (m/s)
@@ -78,6 +80,9 @@ private:
 
     string tolower(string str);
     string RemoveBlankSpaces(string line);
+
+    int SearchPredefinedTopologies(rowvec &, std::string &);
+    void AutoSetInitialPivot();
 
 
 };

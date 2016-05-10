@@ -2,6 +2,7 @@
 
 IO::IO()
 {
+    Nsamples = 30;
 }
 
 double string_to_double( const std::string& s )
@@ -227,7 +228,7 @@ int IO::ResampleImpedances()
         return 0;
     }
 
-
+    double fmin, fmax;
     /*We have to discern the following cases
     1: ZS constant, ZL constant versus frequency
     2: ZS s2p/s1p, ZL constant vs freq
@@ -237,7 +238,7 @@ int IO::ResampleImpedances()
 
     if ((ZS.n_elem == 1) && (ZL.n_elem == 1)) //ZS constant, ZL constant vs frequency
     {
-        freq = linspace(fmatching_min, fmatching_max, 200);//Available freqs
+        freq = linspace(fmatching_min, fmatching_max, Nsamples);//Available freqs
         cx_double zs_temp = ZS(0,0);
         cx_double zl_temp = ZL(0,0);
         //Create ZS and ZL vectors with the same length than freq
@@ -259,7 +260,8 @@ int IO::ResampleImpedances()
         ZS.resize(ZL.size());
         ZS.ones();
         ZS = ZS*zs_temp;
-        return 0;
+        fmin = freq.min();
+        fmax = freq.max();
     }
 
     if ((ZS.n_elem != 1) && (ZL.n_elem == 1)) //ZS s2p/s1p vs ZL constant
@@ -270,21 +272,23 @@ int IO::ResampleImpedances()
         ZL.resize(ZS.size());
         ZL.ones();
         ZL = ZL*zl_temp;
-        return 0;
+        fmin = freq.min();
+        fmax = freq.max();
+    }
+    else
+    {
+      if ((ZS.n_elem != 1) && (ZL.n_elem != 1)) //ZS s2p/s1p vs ZL s2p/s1p
+      {
+          //Define vector of available freqs
+          (fS.min() > fL.min()) ? fmin = fS.min() : fmin = fL.min();
+          (fS.max() > fL.max()) ? fmax = fL.max() : fmax = fS.max();
+
+          //int N;//Number of points for linear interpolation
+          //(ZS.n_elem > ZL.n_elem) ? N = 2*ZS.n_elem : N = 2*ZL.n_elem;
+      }
     }
 
-    if ((ZS.n_elem != 1) && (ZL.n_elem != 1)) //ZS s2p/s1p vs ZL s2p/s1p
-    {
-        //Define vector of available freqs
-        double fmin, fmax;
-        (fS.min() > fL.min()) ? fmin = fS.min() : fmin = fL.min();
-        (fS.max() > fL.max()) ? fmax = fL.max() : fmax = fS.max();
-
-        int N;//Number of points for linear interpolation
-        (ZS.n_elem > ZL.n_elem) ? N = 2*ZS.n_elem : N = 2*ZL.n_elem;
-
-        freq = linspace(fmin, fmax, N);//Available freqs
-
+        freq = linspace(fmin, fmax, Nsamples);//Available freqs
 
         //Impedance interpolation. This way both vector have the same frequency basis.
         vec ZS_r(real(ZS)), ZS_i(imag(ZS)), ZL_r(real(ZL)), ZL_i(imag(ZL));
@@ -297,9 +301,6 @@ int IO::ResampleImpedances()
         ZS = cx_vec(ZS_inter_R, ZS_inter_I);
         ZL = cx_vec(ZL_inter_R, ZL_inter_I);
         return 0;
-    }
-
-    return -1;
 
 }
 
