@@ -1,17 +1,22 @@
-#ifndef GRABIM_H
-#define GRABIM_H
-
+#ifndef MATCHINGNETWORK_H
+#define MATCHINGNETWORK_H
 #include <nlopt.hpp>
 #include <armadillo>
-#include "sparengine.h"
+#include <string.h>
+#include <iostream>
 #include <queue>
-#include <QString>
-#include <QStringList>
 
 using namespace arma;
 using namespace std;
 
-enum ObjectiveFunction {NINF_S11dB, NINF_POWERTRANS};
+const double c0 = 299792458;//Speed of light (m/s)
+
+typedef struct DeviceData {
+    cx_mat S;
+    cx_mat Z;
+    vec freq;
+
+} DeviceData;
 
 typedef struct GRABIM_Result {
     rowvec x_grid_search;
@@ -19,34 +24,27 @@ typedef struct GRABIM_Result {
     rowvec x_nlopt;
     double nlopt_val;
     cx_vec ZS, ZL;
-    vec freq;
+    vec f_analysis;
     cx_vec S11_gridsearch, S21_gridsearch, S12_gridsearch, S22_gridsearch;
     cx_vec S11_nlopt, S21_nlopt, S12_nlopt, S22_nlopt;
-    QString topology;
-    QString source_path;
-    QString load_path;
-    QString QucsVersion;
 
 } GRABIM_Result;
 
+enum ObjectiveFunction {NINF_S11dB, NINF_POWERTRANS};
 
 //Reference:
 // [1] Broadband direct-coupled and RF matching networks. Thomas R. Cuthbert, 1999
-// [2] Broadband impedance matching - Fast and simple. Thomas R. Cuthbert. RF design. 1994
-class GRABIM
+class MatchingNetwork
 {
-    const double c0 = 299792458;//Speed of light (m/s)
-
 public:
-    GRABIM();
-
-    int SetSourceImpedance(cx_vec);
-    int SetLoadImpedance(cx_vec);
-    int SetFrequency(vec);
-
+    MatchingNetwork();
+    int SetSourceImpedance(std::string);
+    int SetSourceImpedance(cx_vec, vec);
+    int SetLoadImpedance(std::string);
+    int SetLoadImpedance(cx_vec, vec);
     int SetInitialPivot(rowvec);
     rowvec GetInitialPivot();
-    int SetMatchingBand(double, double);
+    int SetMatchingBand(double, double, int);
     int SetTopology(std::string);
     GRABIM_Result RunGRABIM();
     int SetMaxIterGridSearch(int);
@@ -59,36 +57,28 @@ public:
     int SetObjectiveFunction(ObjectiveFunction);
     ObjectiveFunction GetObjectiveFunction();
 
-    void setTopoScript(std::string);
-
 private:
+    DeviceData LoadS2PData(std::string);
     rowvec GridSearch();
     rowvec LocalOptimiser(rowvec);
     int ResampleImpedances();
+    cx_mat getSparams(rowvec, cx_double, cx_double, double);
+    cx_mat getABCDmatrix(rowvec, double);
     mat GeneratingMatrix(int);
     double CalcInvPowerTransfer(cx_mat, cx_double, cx_double);
     rowvec InspectCandidate(rowvec);
     rowvec x_ini;
-
-    vec freq;
+    vec f_matching;
     cx_vec ZS, ZL;
-
+    cx_vec ZS_matching, ZL_matching;
+    vec fS, fL;
+    vec f_analysis;
     bool verbose;
     std::string topology;
     unsigned int Grid_MaxIter;
     double MatchingThreshold;
     nlopt::algorithm NLoptAlgo;
     ObjectiveFunction ObjFun;
-
-    string tolower(string str);
-    string RemoveBlankSpaces(string line);
-
-    std::string TopoScript_path;
-
-    int SearchPredefinedTopologies(rowvec &, std::string &);
-    void AutoSetInitialPivot();
-
-
 };
 
-#endif // GRABIM_H
+#endif // MATCHINGNETWORK_H
