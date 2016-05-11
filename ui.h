@@ -30,6 +30,7 @@ private:
     QPushButton * SourceFileButton, * LoadFileButton;
     QPushButton * RunButton, * CancelButton;
     QPushButton * GNUplotButton;
+    QPushButton * TopoScriptButton;
     QWidget * centralWidget;
     QSvgWidget *imgWidget;
     QComboBox *Topology;
@@ -39,7 +40,7 @@ private:
     QComboBox * QucsCombo;
     QLabel * LocalOptLabel, *minFLabel, *maxFLabel, *CodeLabel;
     QString  SourceFile, LoadFile;
-    QString GNUplot_path;
+    QString GNUplot_path, TopoScript_path;
     QLineEdit * minFEdit, * maxFEdit, *ArbitraryTopologyLineEdit;
 
     QCheckBox * FixedZLCheckbox, * FixedZSCheckbox;
@@ -58,9 +59,12 @@ private:
     void GNUplotOutput_clicked();
     void FixedZSCheckbox_clicked();
     void FixedZLCheckbox_clicked();
+    void TopoScriptButton_clicked();
+
     cx_double getComplexImpedanceFromText(char *);
 
     double getFreqScale(int);
+    QString getTopoScriptPath();
 };
 
 #endif // UI_H

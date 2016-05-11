@@ -216,7 +216,7 @@ rowvec GRABIM::GridSearch()
         if (verbose)std::cout << "BEST CANDIDATE "<< i << ": " << xkq.row(imin) << " => " << best_candidate << std::endl;
 
 
-        if (best_candidate < best.min())
+        if (best_candidate < best.min() - 1e-3)
         {
             best << best_candidate << 0 << 0 << 0 << endr;//Prepare best for new hypercube cycle
             xk = xkq.row(imin);//Set new pivot
@@ -233,7 +233,7 @@ rowvec GRABIM::GridSearch()
 
         if (i > 0)//Checks if the i-th cycle improved the result with regard to the (i-1)-th cycle
         {
-            if ((abs(best.at(i)-best.at(i-1))<1e-3)||(best(i)>best.at(i-1)))//The current cycle did not improve the result
+            if (best.at(i)-best.at(i-1)<-1e-3)//The current cycle did not improve the result
             {
                 uvec v_find = find(best < best.min()+1e-6);
 
@@ -269,7 +269,7 @@ rowvec GRABIM::GridSearch()
 int GRABIM::SearchPredefinedTopologies(rowvec & Vopt, std::string & candidate)
 {
     double gridtest, opttopo = 1e12;
-    std::ifstream TopologiesFile("predefined_topologies");//Tries to open the file.
+    std::ifstream TopologiesFile(TopoScript_path);//Tries to open the file.
     std::string line, tag;
     rowvec Vaux;
     if(!TopologiesFile.is_open())//The data file cannot be opened => error
@@ -280,7 +280,7 @@ int GRABIM::SearchPredefinedTopologies(rowvec & Vopt, std::string & candidate)
     cout << "Predefined networks..." << endl;
 
     QStringList strlist;
-std:string aux;
+    std:string aux;
     while (std::getline(TopologiesFile, aux))
     {
         if (aux.empty())continue;
@@ -619,4 +619,10 @@ void GRABIM::AutoSetInitialPivot()
         x_ini.at(i) = XINI.front();
         XINI.pop();
     }
+}
+
+
+void GRABIM::setTopoScript(std::string path)
+{
+    TopoScript_path = path;
 }

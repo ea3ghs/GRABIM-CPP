@@ -164,6 +164,13 @@ ui::ui()
        QucsLayout->addWidget(QucsCombo);
 
 
+       QHBoxLayout * TopoScriptLayout =  new QHBoxLayout();
+       TopoScriptButton =  new QPushButton("Browse");
+       TopoScriptLayout->addWidget(new QLabel("Topology script:"));
+       TopoScriptLayout->addWidget(TopoScriptButton);
+       connect(TopoScriptButton, SIGNAL(clicked()), this, SLOT(TopoScriptButton_clicked()));
+       TopoScript_path = "predefined_topologies";
+
       //Create go/cancel buttons
       RunButton = new QPushButton("Go");
       CancelButton = new QPushButton("Cancel");
@@ -183,6 +190,7 @@ ui::ui()
       mainLayout->addLayout(LocalOptLayout);
       mainLayout->addWidget(groupBoxGNUplot);
       mainLayout->addLayout(QucsLayout);
+      mainLayout->addLayout(TopoScriptLayout);
       mainLayout->addLayout(ButtonsLayout);
 
       centralWidget->setLayout(mainLayout);
@@ -198,7 +206,7 @@ void ui::ArbitraryTopology_clicked()
     {
         ArbitraryTopologyLineEdit->setEnabled(true);
         CodeLabel->setVisible(true);
-        setFixedSize(400, 650);
+        setFixedSize(400, 600);
     }
     else
     {
@@ -214,7 +222,7 @@ void ui::SearchBestTopology_clicked()
         {
             ArbitraryTopologyLineEdit->setEnabled(false);
             CodeLabel->setVisible(false);
-            setFixedSize(400, 450);
+            setFixedSize(400, 500);
         }
         else
         {
@@ -227,9 +235,6 @@ void ui::SearchBestTopology_clicked()
 
 void ui::go_clicked()
 {
-    QMessageBox::information(0, QObject::tr("Started"),
-                         QObject::tr("GRABIM has just started running. Please hang out with the terminal"));
-
 
     //Before starting the matching engine, we must ensure that the impedance data is already loaded
     if (SourceFile.isEmpty() && (FixedZSLineedit->text().isEmpty()))
@@ -360,6 +365,7 @@ void ui::go_clicked()
     MatchingObject.SetSourceImpedance(inout_operations.getSourceImpedance());
     MatchingObject.SetLoadImpedance(inout_operations.getLoadImpedance());
     MatchingObject.SetFrequency(inout_operations.getFrequency());
+    MatchingObject.setTopoScript(TopoScript_path.toStdString());
 
     //Topology
     if (ArbitraryTopology->isChecked())//Use custom topology
@@ -437,7 +443,14 @@ void ui::LoadImpedance_clicked()
 void ui::GNUplotOutput_clicked()
 {
     GNUplot_path = QFileDialog::getSaveFileName(this,
-        tr("Open S-parameter file"), QCoreApplication::applicationDirPath());
+        tr("Save GNUplot script"), QCoreApplication::applicationDirPath());
+}
+
+
+void ui::TopoScriptButton_clicked()
+{
+    TopoScript_path = QFileDialog::getOpenFileName(this,
+        tr("Open script"), QCoreApplication::applicationDirPath());
 }
 
 // Shows hides button/lineedit for source impedance selection
@@ -512,4 +525,8 @@ double ui::getFreqScale(int index)
 }
 
 
+QString ui::getTopoScriptPath()
+{
+    return TopoScript_path;
+}
 

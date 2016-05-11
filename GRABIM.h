@@ -59,6 +59,8 @@ public:
     int SetObjectiveFunction(ObjectiveFunction);
     ObjectiveFunction GetObjectiveFunction();
 
+    void setTopoScript(std::string);
+
 private:
     rowvec GridSearch();
     rowvec LocalOptimiser(rowvec);
@@ -80,6 +82,8 @@ private:
 
     string tolower(string str);
     string RemoveBlankSpaces(string line);
+
+    std::string TopoScript_path;
 
     int SearchPredefinedTopologies(rowvec &, std::string &);
     void AutoSetInitialPivot();
