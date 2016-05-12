@@ -173,6 +173,7 @@ rowvec GRABIM::GridSearch()
     mat C = GeneratingMatrix(dim);
     unsigned int niter = 0;
 
+    f_xkq = 1e6*f_xkq.ones();
 
     /*
     //Initial guess. Sometimes, the initial point may be far away from the optimum, so it
@@ -610,7 +611,8 @@ void GRABIM::AutoSetInitialPivot()
             // Here it is defined a linear impedance profile. In case the user selected 444, this tries
             // works real-to-real impedance transformer. Luckily, GRABIM will find a better result
             double Zi;
-            double m = (mean(real(ZL))-mean(real(ZS)))/topology.length();
+            double m = 2.*(mean(real(ZL))-mean(real(ZS)))/topology.length();
+
             Zi = m*i+mean(real(ZS));
             XINI.push(Zi);
             XINI.push(lambda4);

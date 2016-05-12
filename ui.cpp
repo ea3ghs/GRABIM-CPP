@@ -240,18 +240,18 @@ void ui::go_clicked()
     if (SourceFile.isEmpty() && (FixedZSLineedit->text().isEmpty()))
     {
         QMessageBox::warning(0, QObject::tr("Error"),
-                             QObject::tr("Please select a S-parameter file for the source termination"));
+                             QObject::tr("Please select a Touchstone file for the source"));
         return;
     }
 
     if (LoadFile.isEmpty()&& (FixedZLLineedit->text().isEmpty()))
     {
         QMessageBox::warning(0, QObject::tr("Error"),
-                             QObject::tr("Please select a S-parameter file for the load termination"));
+                             QObject::tr("Please select a Touchstone file for the load"));
         return;
     }
 
-    //Check whether the impedances are specified as s1p or s2p
+    //Check filename extension
     int formatSource=-1, formatLoad=-1;;
     if (SourceFile.contains(".s1p")) formatSource = 0;
     if (LoadFile.contains(".s1p")) formatLoad = 0;
@@ -260,14 +260,14 @@ void ui::go_clicked()
     if ((formatSource != 0) && (!FixedZSCheckbox->isChecked()))
     {
         QMessageBox::warning(0, QObject::tr("Error"),
-                             QObject::tr("The source termination must be either a s1p or s2p file"));
+                             QObject::tr("Unknown source impedace"));
         return;
     }
 
     if ((formatLoad != 0)  && (!FixedZLCheckbox->isChecked()))
     {
         QMessageBox::warning(0, QObject::tr("Error"),
-                             QObject::tr("The load termination must be either a s1p or s2p file"));
+                             QObject::tr("Unknown load impedance"));
         return;
     }
 
@@ -276,7 +276,7 @@ void ui::go_clicked()
 
     if (!FixedZSCheckbox->isChecked())//Read source impedance from file
     {
-        inout_operations.loadS1Pdata(SourceFile.toStdString(), SOURCE, false);//s1p
+        inout_operations.loadS1Pdata(SourceFile.toStdString(), SOURCE);//s1p
     }
     else//Set constant source impedance
     {
@@ -295,7 +295,7 @@ void ui::go_clicked()
 
     if (!FixedZLCheckbox->isChecked())
     {
-       inout_operations.loadS1Pdata(LoadFile.toStdString(), LOAD, false);//s1p
+       inout_operations.loadS1Pdata(LoadFile.toStdString(), LOAD);//s1p
     }
     else
     {
@@ -317,6 +317,7 @@ void ui::go_clicked()
     //Check frequency specifications
     double fmatching_min = minFEdit->text().toDouble();
     double fmatching_max = maxFEdit->text().toDouble();
+
     if ((fmatching_min == -1) || (fmatching_max == -1))
     {
         QMessageBox::warning(0, QObject::tr("Error"),
@@ -328,6 +329,7 @@ void ui::go_clicked()
         //Scale frequency according to the combobox units
         fmatching_min *= getFreqScale(minFUnitsCombo->currentIndex());
         fmatching_max *= getFreqScale(maxFUnitsCombo->currentIndex());
+
         inout_operations.set_matching_band(fmatching_min, fmatching_max);
 
         //Check if the specified frequencies lie with the s1p/s2p data
@@ -377,7 +379,6 @@ void ui::go_clicked()
        case 7: inout_operations.setLocalOptimiser(nlopt::GN_ISRES);break;
        case 8: inout_operations.setLocalOptimiser(nlopt::GD_STOGO);break;
     }
-
 
 
     GRABIM_Result R = MatchingObject.RunGRABIM();//Runs GRABIM. Well, this is not exactly the algorithm

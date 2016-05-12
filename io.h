@@ -15,7 +15,7 @@ class IO
 public:
     IO();
     int exportGNUplot(GRABIM_Result, string);
-    int loadS1Pdata(std::string, terminal, bool);
+    int loadS1Pdata(std::string, terminal);
     int ResampleImpedances();
     cx_mat getSourceImpedance();
     cx_mat getLoadImpedance();

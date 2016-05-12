@@ -3,6 +3,8 @@
 IO::IO()
 {
     Nsamples = 30;
+    fmatching_min = -1;
+    fmatching_max = -1;
 }
 
 double string_to_double( const std::string& s )
@@ -91,7 +93,7 @@ string RemoveBlankSpaces(string line)
 }
 
 
-int IO::loadS1Pdata(std::string filepath, terminal Port, bool isRawImpedance)
+int IO::loadS1Pdata(std::string filepath, terminal Port)
 {
     std::ifstream s2pfile(filepath.c_str());//Tries to open the data file.
     if(!s2pfile.is_open())//The data file cannot be opened => error
@@ -120,6 +122,8 @@ int IO::loadS1Pdata(std::string filepath, terminal Port, bool isRawImpedance)
     Zref = atof(line.substr(Rindex+1).c_str());
     bool is_indB = (line.find("db") != -1);
     bool RI = (line.find("ma") == -1);
+    bool isS_par = (line.find(" s ") != -1);
+    bool isZ_par = (line.find(" z ") != -1);
 
 
     while( getline(s2pfile, line) )
@@ -189,13 +193,13 @@ int IO::loadS1Pdata(std::string filepath, terminal Port, bool isRawImpedance)
             S(i, 0) = cx_double(S11m,0)*cx_double(cos(phi), sin(phi));
         }
 
-        if (isRawImpedance)
+        if (isZ_par)
         {//The data file contains impedance data
             Z(i, 0) =  S(i, 0);
         }
-        else
+        if (isS_par)
         {//The data file contains s1p data
-        Z(i, 0) = Zref*((1.+S(i, 0))/(1.-S(i, 0)));//Z
+            Z(i, 0) = Zref*((1.+S(i, 0))/(1.-S(i, 0)));//Z
         }
 
     }
@@ -222,6 +226,8 @@ int IO::loadS1Pdata(std::string filepath, terminal Port, bool isRawImpedance)
 // spline or cubic interpolation, but it seems that they are not implemented in Armadillo
 int IO::ResampleImpedances()
 {
+    if (fmatching_min == -1) return 0;
+
     //Check whether the vectors are already resampled or not
     if ((ZS.n_elem == ZL.n_elem) && (ZS.n_elem == freq.n_elem))
     {
@@ -305,6 +311,7 @@ int IO::ResampleImpedances()
 
         ZS = cx_vec(ZS_inter_R, ZS_inter_I);
         ZL = cx_vec(ZL_inter_R, ZL_inter_I);
+
         return 0;
 
 }
@@ -343,6 +350,7 @@ void IO::set_matching_band(double fmin, double fmax)
 {
     fmatching_min = fmin;
     fmatching_max = fmax;
+    freq = linspace(fmatching_min, fmatching_max, Nsamples);//Available freqs
 }
 
 // Set load/source matching impedace
@@ -453,32 +461,12 @@ int IO::SchematicParser(GRABIM_Result R, int & x_pos, QString & componentstr, QS
     }
     else
     {//Place a S-param file
-        if (R.source_path.contains(".s1p"))
-        {
-           componentstr += QString("<SPfile X1 1 %1 -120 -26 -67 0 0 \"%2\" 1 \"rectangular\" 0 \"linear\" 0 \"open\" 0 \"1\" 0>").arg(x_pos).arg(R.source_path);
-           componentstr += QString("<GND * 1 %1 -150 0 0 0 0>").arg(x_pos);
-           x_pos = 30;
-           wirestr += QString("<%1 -120 %2 -120>\n").arg(x_pos).arg(x_pos+60);
-           x_pos +=60;
-        }
-        if (R.source_path.contains(".s2p"))
-        {
-           componentstr += QString("<SPfile X1 1 %1 -120 -26 -67 0 0 \"%2\" 1 \"rectangular\" 0 \"linear\" 0 \"open\" 0 \"2\" 0>").arg(x_pos).arg(R.source_path);
-           componentstr += QString("<GND * 1 %1 -150 0 0 0 0>").arg(x_pos);
-           x_pos = 30;
-           wirestr += QString("<%1 -120 %2 -120>\n").arg(x_pos).arg(x_pos+60);
-           x_pos +=60;
-        }
+        componentstr += QString("<SPfile X1 1 %1 -120 -26 -67 0 0 \"%2\" 1 \"rectangular\" 0 \"linear\" 0 \"open\" 0 \"1\" 0>").arg(x_pos).arg(R.source_path);
+        componentstr += QString("<GND * 1 %1 -150 0 0 0 0>").arg(x_pos);
+        x_pos = 30;
+        wirestr += QString("<%1 -120 %2 -120>\n").arg(x_pos).arg(x_pos+60);
+        x_pos +=60;
     }
-
-
-
-    //Add the frequency range for the S-param simulation
-    double freq_start = std::max(0., freq.min()-5e8);
-    double freq_stop = freq.max()+5e8;
-    componentstr += QString("<.SP SP1 1 0 100 0 67 0 0 \"lin\" 1 \"%2Hz\" 1 \"%3Hz\" 1 \"300\" 1 \"no\" 0 \"1\" 0 \"2\" 0>\n").arg((freq_start)).arg((freq_stop));
-    componentstr += QString("<Eqn Eqn1 1 200 100 -28 15 0 0 \"S11_dB=dB(S[1,1])\" 1 \"yes\" 0>\n");
-    componentstr += QString("<Eqn Eqn1 1 200 200 -28 15 0 0 \"S21_dB=dB(S[2,1])\" 1 \"yes\" 0>\n");
 
 
     // The string format is as follows: "XX<value>;XX<value2>;...XX<valueN>;"
@@ -568,16 +556,8 @@ int IO::SchematicParser(GRABIM_Result R, int & x_pos, QString & componentstr, QS
     }
     else
     {//Place a S-param file
-        if (R.source_path.contains(".s1p"))
-        {
-           componentstr += QString("<SPfile X1 1 %1 -120 -26 -67 0 0 \"%2\" 1 \"rectangular\" 0 \"linear\" 0 \"open\" 0 \"1\" 0>").arg(x_pos).arg(R.load_path);
-           componentstr += QString("<GND * 1 %1 -150 0 0 0 0>").arg(x_pos);
-        }
-        if (R.source_path.contains(".s2p"))
-        {
-           componentstr += QString("<SPfile X1 1 %1 -120 -26 -67 0 0 \"%2\" 1 \"rectangular\" 0 \"linear\" 0 \"open\" 0 \"2\" 0>").arg(x_pos).arg(R.load_path);
-           componentstr += QString("<GND * 1 %1 -150 0 0 0 0>").arg(x_pos);
-        }
+        componentstr += QString("<SPfile X1 1 %1 -120 -26 -67 0 0 \"%2\" 1 \"rectangular\" 0 \"linear\" 0 \"open\" 0 \"1\" 0>").arg(x_pos).arg(R.load_path);
+        componentstr += QString("<GND * 1 %1 -150 0 0 0 0>").arg(x_pos);
     }
 
     return 0;
