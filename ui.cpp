@@ -254,20 +254,17 @@ void ui::go_clicked()
     //Check whether the impedances are specified as s1p or s2p
     int formatSource=-1, formatLoad=-1;;
     if (SourceFile.contains(".s1p")) formatSource = 0;
-    if (SourceFile.contains(".z1p")) formatSource = 1;
-    if (SourceFile.contains(".s2p")) formatSource = 2;
     if (LoadFile.contains(".s1p")) formatLoad = 0;
-    if (LoadFile.contains(".z1p")) formatLoad = 1;
-    if (LoadFile.contains(".s2p")) formatLoad = 2;
 
-    if ((formatSource != 0) && (formatSource != 1) && (FixedZSLineedit->text().isEmpty()))
+
+    if ((formatSource != 0) && (!FixedZSCheckbox->isChecked()))
     {
         QMessageBox::warning(0, QObject::tr("Error"),
                              QObject::tr("The source termination must be either a s1p or s2p file"));
         return;
     }
 
-    if ((formatLoad != 0) && (formatLoad != 1) && (FixedZLLineedit->text().isEmpty()))
+    if ((formatLoad != 0)  && (!FixedZLCheckbox->isChecked()))
     {
         QMessageBox::warning(0, QObject::tr("Error"),
                              QObject::tr("The load termination must be either a s1p or s2p file"));
@@ -279,12 +276,7 @@ void ui::go_clicked()
 
     if (!FixedZSCheckbox->isChecked())//Read source impedance from file
     {
-       switch (formatSource)
-       {
-          case 0: inout_operations.loadS1Pdata(SourceFile.toStdString(), SOURCE, false); break;//s1p
-          case 1: inout_operations.loadS1Pdata(SourceFile.toStdString(), SOURCE, true); break;//z1p
-          case 2: inout_operations.loadS2Pdata(SourceFile.toStdString(), SOURCE);break;//s2p
-       }
+        inout_operations.loadS1Pdata(SourceFile.toStdString(), SOURCE, false);//s1p
     }
     else//Set constant source impedance
     {
@@ -303,12 +295,7 @@ void ui::go_clicked()
 
     if (!FixedZLCheckbox->isChecked())
     {
-        switch (formatLoad)
-        {
-           case 0: inout_operations.loadS1Pdata(LoadFile.toStdString(), LOAD, false); break;//s1p
-           case 1: inout_operations.loadS1Pdata(LoadFile.toStdString(), LOAD, true); break;//z1p
-           case 2: inout_operations.loadS2Pdata(LoadFile.toStdString(), LOAD);break;//s2p
-        }
+       inout_operations.loadS1Pdata(LoadFile.toStdString(), LOAD, false);//s1p
     }
     else
     {

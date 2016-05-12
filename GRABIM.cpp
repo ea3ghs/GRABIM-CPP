@@ -424,7 +424,7 @@ double GRABIM::CandidateEval(rowvec x)
     SparEngine S2PEngine;
     for (unsigned int i = 0; i < freq.n_elem; i++)
     {
-
+//cout << freq << endl;
         if (ObjFun == ObjectiveFunction::NINF_S11dB)
         {
             S = S2PEngine.getSparams(x, ZS.at(i), ZL.at(i), freq.at(i), topology);
@@ -594,12 +594,15 @@ double GRABIM::CalcInvPowerTransfer(cx_mat ABCD, cx_double ZS, cx_double ZL)
 void GRABIM::AutoSetInitialPivot()
 {
     double meanf = .5*(freq.min()+freq.max());
+    double meanw = 2*datum::pi*meanf;
     double lambda4 = c0/(4.*meanf);
     queue <double> XINI;
     for (unsigned int i = 0; i< topology.size();i++)
     {
-        if ((!topology.substr(i,1).compare("0"))||(!topology.substr(i,1).compare("2"))) XINI.push(1e-9);
-        if ((!topology.substr(i,1).compare("1"))||(!topology.substr(i,1).compare("3"))) XINI.push(1e-12);
+        if (!topology.substr(i,1).compare("0")) XINI.push(10/meanw);//Series impedance at midband ~ 5 Ohm
+        if (!topology.substr(i,1).compare("2")) XINI.push(50/meanw);//Parallel impedance at midband ~ 100 Ohm
+        if (!topology.substr(i,1).compare("1")) XINI.push(1/(10*meanw));//Series impedance at midband ~ 5 Ohm
+        if (!topology.substr(i,1).compare("3")) XINI.push(1/(500*meanw));//Parallel impedance at midband ~ 100 Ohm
         if((!topology.substr(i,1).compare("5"))||(!topology.substr(i,1).compare("6")))XINI.push(real(mean(ZS+ZL))),XINI.push(lambda4);
 
         if (!topology.substr(i,1).compare("4"))//Transmission line
