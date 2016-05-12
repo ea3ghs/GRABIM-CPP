@@ -393,8 +393,10 @@ void ui::go_clicked()
     // (probably, global) optimum. This is caused by the fact that the matching network should be as simple as possible => few elements => xk \in R^N, where
     // N is typically < 6. Even N=6 is a big number, please consider that matching networks are tight to physical constraints in practice, so, the larger the
     // network, the harder the 'tuning'.
-    R.source_path = SourceFile;
-    R.load_path = LoadFile;
+
+    (FixedZSCheckbox->isChecked()) ? R.source_path = "" : R.source_path = SourceFile;
+    (FixedZLCheckbox->isChecked()) ? R.load_path = "": R.load_path = LoadFile;
+
     R.QucsVersion = QucsCombo->currentText();
 
 

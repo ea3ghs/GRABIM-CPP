@@ -461,8 +461,8 @@ int IO::SchematicParser(GRABIM_Result R, int & x_pos, QString & componentstr, QS
     }
     else
     {//Place a S-param file
-        componentstr += QString("<SPfile X1 1 %1 -120 -26 -67 0 0 \"%2\" 1 \"rectangular\" 0 \"linear\" 0 \"open\" 0 \"1\" 0>").arg(x_pos).arg(R.source_path);
-        componentstr += QString("<GND * 1 %1 -150 0 0 0 0>").arg(x_pos);
+        componentstr += QString("<SPfile X1 1 %1 -120 -26 -67 1 2 \"%2\" 1 \"rectangular\" 0 \"linear\" 0 \"open\" 0 \"1\" 0>\n").arg(x_pos).arg(R.source_path);
+        componentstr += QString("<GND * 1 %1 -90 0 0 0 0>\n").arg(x_pos);
         x_pos = 30;
         wirestr += QString("<%1 -120 %2 -120>\n").arg(x_pos).arg(x_pos+60);
         x_pos +=60;
