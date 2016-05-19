@@ -1,11 +1,11 @@
-#include <iostream>
-#include "matchingnetwork.h"
+#include "GRABIM.h"
 #include "io.h"
+#include<cctype>
 
 using namespace std;
 
-//This function parses the source and load impedance entered from command line.
-cx_double check_string(char *arg)
+
+cx_double getComplexImpedanceFromText(char *arg)
 {
     string arg_str = arg;
     int index = arg_str.find_first_of("j");
@@ -27,90 +27,176 @@ cx_double check_string(char *arg)
     }
 }
 
+
+
+
+
+
 int main(int argc, char *argv[])
 {
-    MatchingNetwork MatchingObject;
-    cx_double ZS, ZL;
 
-    //DEFAULT VALUES
-    MatchingObject.SetTopology("-1");//By default, no topology is asigned
-    int plot = 1;
-    string output_data = "GRABIM.dat";
-    vec freq = linspace(1e6, 100e6, 200);//Set the frequency vector por plotting the final results
-    int N = 20;//Number of samples to match in the matching band
-
-    // SETTINGS
-    if (argc == 9)
+    if (argc == 7)//Check seed setup
     {
-
-printf("\n\n\n\n!!\n!! GRABIM-CPP rev20160512\n!!\n!! https://github.com/andresmmera/GRABIM-CPP\n");
-printf("!! [SRC:%s]--[MatchingNetwork:%s]--[LOAD:%s]\n",argv[1],argv[5],argv[2]);
-printf("!! BW: %s..%s\n",argv[3],argv[4]);
-printf("!! algorithm: %s\n",argv[6]);
-
-        MatchingObject.SetMatchingBand(atof(argv[3]), atof(argv[4]), N);
-        ZS = check_string(argv[1]);
-        ZL = check_string(argv[2]);
-
-        if(ZS.real() == -1) MatchingObject.SetSourceImpedance(argv[1]);
-        if(ZL.real() == -1) MatchingObject.SetLoadImpedance(argv[2]);
-        MatchingObject.SetTopology(argv[5]);
-        string NL_ALG = argv[6];
-        //NLopt algorithm
-        if (NL_ALG.compare("NLOPT_LN_PRAXIS")) MatchingObject.SetNLoptAlg(nlopt::LN_PRAXIS);
-        else if (NL_ALG.compare("NLOPT_LN_NELDERMEAD")) MatchingObject.SetNLoptAlg(nlopt::LN_NELDERMEAD);
-        else if (NL_ALG.compare("NLOPT_LN_SBPLX")) MatchingObject.SetNLoptAlg(nlopt::LN_SBPLX);
-        else if (NL_ALG.compare("NLOPT_LN_COBYLA")) MatchingObject.SetNLoptAlg(nlopt::LN_COBYLA);
-        else if (NL_ALG.compare("NLOPT_LN_BOBYQA")) MatchingObject.SetNLoptAlg(nlopt::LN_BOBYQA);
-        else if (NL_ALG.compare("NLOPT_LN_AUGLAG")) MatchingObject.SetNLoptAlg(nlopt::LN_AUGLAG);
-        //GLOBAL (genetic...) OPT ALGORITHMS
-        else if (NL_ALG.compare("NLOPT_GN_ESCH")) MatchingObject.SetNLoptAlg(nlopt::GN_ESCH);
-        else if (NL_ALG.compare("NLOPT_GN_ISRES")) MatchingObject.SetNLoptAlg(nlopt::GN_ISRES);
-        else if (NL_ALG.compare("NLOPT_GD_STOGO")) MatchingObject.SetNLoptAlg(nlopt::GD_STOGO);
-
-        plot = atoi(argv[7]);//Display results?
-        output_data = argv[8];//Output data for GNUplot
-    }
-    else//Something went wrong...
-    {
-        cout << "Invalid arguments:" << endl;
-        cout << "./GRABIM-CPP <source-impedance> <load-impedance> <topology> <NL-algorithm> <enable-display> <output-data-file>";
-        return -1;
+        if (!strcmp(argv[5], "--set-seed"))
+        {
+            arma_rng::set_seed(atof(argv[6]));
+        }
+        else
+        {
+            arma_rng::set_seed_random();  // set the seed to a random value
+        }
     }
 
 
+    string SourceFile = argv[1];
+    string LoadFile = argv[2];
 
-    ///// MATCHING SETTINGS ////////
-    rowvec x_ini, x_opt;
+    bool ZSisConstant = isdigit(SourceFile.at(0));
+    bool ZLisConstant = isdigit(LoadFile.at(0));
 
-    if (ZS.real() != -1)
+    //Before starting the matching engine, we must ensure that the impedance data is already loaded
+    if (SourceFile.empty() && (!ZSisConstant))
     {
-        vec ZSr = ZS.real()*ones(freq.n_rows,1);
-        vec ZSi = ZS.imag()*ones(freq.n_rows,1);
-        cx_vec zs(ZSr, ZSi);
-        MatchingObject.SetSourceImpedance(zs,freq);
+        cerr << "Please specify a Touchstone file for the source" << endl;
+        return 0;
     }
 
-    if (ZL.real() != -1)
+    if (LoadFile.empty()&& (!ZLisConstant))
     {
-        vec ZLr = ZL.real()*ones(freq.n_rows,1);
-        vec ZLi = ZL.imag()*ones(freq.n_rows,1);
-        cx_vec zl(ZLr, ZLi);
-        MatchingObject.SetLoadImpedance(zl,freq);
+        cerr << "Please specify a Touchstone file for the load" << endl;
+        return 0;
     }
 
-    //Grid search settings
-    MatchingObject.SetMaxIterGridSearch(1000);//Maximum number of iterations for the grid search algorithm
-    MatchingObject.SetThreshold(-30);//It specifies the mininum S11 [dB] required, typically,
-                                     //S11 < 10 dB is considered as valid for common applications
-    MatchingObject.SetObjectiveFunction(ObjectiveFunction::NINF_S11dB);//Sets the kind of objective functions. Everything seems to
-                                                                       //suggest that NINF_S11dB gives the best results
+    //Check filename extension
+    int formatSource=-1, formatLoad=-1;;
+    if (SourceFile.find(".s1p")) formatSource = 0;
+    if (LoadFile.find(".s1p")) formatLoad = 0;
 
-    GRABIM_Result R = MatchingObject.RunGRABIM();
-    IO io;io.exportGNUplot(R, output_data, plot);
-    //std::cout << "GRID SEARCH: S11_max = "<< R.grid_val << "dB <= " << R.x_grid_search;
-    //std::cout << "NLOPT: S11_max = "<< R.nlopt_val << "dB <= " <<  R.x_nlopt;
-    
+
+    if ((formatSource != 0) && (!ZSisConstant))
+    {
+        cerr << "Unknown source impedace" << endl;
+        return 0;
+    }
+
+    if ((formatLoad != 0)  && (!ZLisConstant))
+    {
+        cerr << "Unknown load impedance" << endl;
+        return 0;
+    }
+
+    //Impedance data paths were already specified, let's proceed to bring the S-par data into memory
+    IO inout_operations;
+
+    if (!ZSisConstant)//Read source impedance from file
+    {
+        inout_operations.loadS1Pdata(SourceFile, SOURCE);//s1p
+    }
+    else//Set constant source impedance
+    {
+       cx_double zs_temp;
+       char * text = argv[1];
+       zs_temp = getComplexImpedanceFromText(text);
+       if (zs_temp.real() == -1)//Check if the input value is correct
+       {
+           cerr << "The input given for the source impedance is not valid" << endl;
+           return 0;
+       }
+       inout_operations.set_constant_ZS_vs_freq(zs_temp);
+    }
+
+    if (!ZLisConstant)
+    {
+       inout_operations.loadS1Pdata(LoadFile, LOAD);//s1p
+    }
+    else
+    {
+        cx_double zl_temp;
+        char * text = argv[2];
+        zl_temp = getComplexImpedanceFromText(text);
+
+        if (zl_temp.real() == -1)//Check if the input value is correct
+        {
+            cerr << "The input given for the load impedance is not valid" << endl;
+            return 0;
+        }
+        inout_operations.set_constant_ZL_vs_freq(zl_temp);
+
+    }
+
+    //Check frequency specifications
+    double fmatching_min = atof(argv[3]);
+    double fmatching_max = atof(argv[4]);
+
+    if ((fmatching_min == -1) || (fmatching_max == -1))
+    {
+        cerr << "Incorrect frequency settings" << endl;
+        return 0;
+    }
+    else//Everything correct... lets set frequency
+    {
+        inout_operations.set_matching_band(fmatching_min, fmatching_max);
+
+        //Check if the specified frequencies lie with the s1p/s2p data
+        inout_operations.ResampleImpedances();//Force data update
+        if (fmatching_min < inout_operations.getFrequency().min())//The lower freq is not present at s1p/s2p
+        {
+            cerr <<"One of the impedance data files does not contain the specified lower frequency" << endl;
+            return 0;
+        }
+        if (fmatching_max > inout_operations.getFrequency().max())//The maximum freq is not present at s1p/s2p
+        {
+            cerr <<"One of the impedance data files does not contain the specified upper frequency" << endl;
+            return 0;
+        }
+    }
+
+
+    string TopoScript_path = "predefined_topologies";
+    string QucsSchPath = "GRABIM_result.sch";
+
+    GRABIM MatchingObject;
+    // Impedance and frequency settings
+    MatchingObject.SetSourceImpedance(inout_operations.getSourceImpedance());
+    MatchingObject.SetLoadImpedance(inout_operations.getLoadImpedance());
+    MatchingObject.SetFrequency(inout_operations.getFrequency());
+    MatchingObject.setTopoScript(TopoScript_path);
+
+    MatchingObject.SetTopology("-1");
+
+    inout_operations.setLocalOptimiser(nlopt::LN_NELDERMEAD);
+    inout_operations.set_qucs_sch_path(QucsSchPath);
+
+
+    GRABIM_Result R = MatchingObject.RunGRABIM();//Runs GRABIM. Well, this is not exactly the algorithm
+    // detailed at [1] but from my point of view is functional and easier to code...
+    //Notes:
+    // 1) The candidate vector is not in log units. I do not see a good reason for doing so. Maybe I am missing something important
+    // 2) Frequency is not in rad/s.
+    // 3) The objective function is the magnitude of S11 expressed in dB. log(x) functions usually have strong
+    // gradients so it seem to suggest that this is good for derivative free opt algorithms
+    // 4) This code takes advantage from NLopt derivative-free local optimisers. NLopt is easy to link and it works
+    // fine. Despite the fact that the Nelder-Mead algorithm does not guarantee convergence (among other problems), it leads to achieve a good local
+    // (probably, global) optimum. This is caused by the fact that the matching network should be as simple as possible => few elements => xk \in R^N, where
+    // N is typically < 6. Even N=6 is a big number, please consider that matching networks are tight to physical constraints in practice, so, the larger the
+    // network, the harder the 'tuning'.
+
+    inout_operations.PrintNetwork_StandardOutput(R);
+
+    (ZSisConstant) ? R.source_path = "" : R.source_path = SourceFile;
+    (ZLisConstant) ? R.load_path = "": R.load_path = LoadFile;
+
+    R.QucsVersion = "0.0.19";
+
+
+    string GNUplot_path = "GRABIM.dat";
+
+    cout << "Finished: GRABIM has successfully finished." << endl;
+    cout << "Please execute: 'gnuplot plotscript' to take a look to the results." << endl;
+    cout << "A new Qucs schematic has been generated at "<< inout_operations.get_qucs_sch_path() << endl;
+
+    inout_operations.exportGNUplot(R, GNUplot_path);
+    inout_operations.ExportQucsSchematic(R);
 }
 
 
