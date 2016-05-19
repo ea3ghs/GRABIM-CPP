@@ -1,3 +1,5 @@
+#include <iostream>
+#include <iomanip>
 #include "GRABIM.h"
 
 GRABIM::GRABIM()
@@ -313,14 +315,20 @@ int GRABIM::SearchPredefinedTopologies(rowvec & Vopt, std::string & candidate)
         }
         Vaux = GridSearch();
         gridtest = CandidateEval(Vaux);
-        cout << tag << ": S11_min = " <<  gridtest << " dB" << endl;
+
+
+        //printf("%-20s %3.1f dB",tag,gridtest); 
+        cout << std::setw(20) << left << tag << std::setw(20) << left << topology << setprecision(3) <<  gridtest << "\tdB";
 
         if (gridtest < opttopo - 0.5)//It worths to change the topology if the new one improves the result significantly
         {
             candidate = topology;
             opttopo = gridtest;
             Vopt = Vaux;
+            cout << "     S11 min!";
+
         }
+    cout << endl;
     }
     return 0;
 }
@@ -549,13 +557,14 @@ double myfunc(const std::vector<double> &x, std::vector<double> &grad, void *n)
     for (unsigned int i = 0; i < x.size(); i++) x_.at(i) = x[i];
 
     double eval = M.CandidateEval(x_);
-    std::cout<< eval << " <= " << x_<< std::endl;
+    //std::cout<< eval << " <= " << x_<< std::endl;
     return eval;
 }
 
 // Given the grid optimum, the local optimiser is supposed to refine the search
 rowvec GRABIM::LocalOptimiser(rowvec x_grid)
 {
+    cout << "!! running LocalOptimiser() with network " << topology << endl; 
     int dim = x_grid.n_cols;
     nlopt::opt opt(NLoptAlgo, dim);
     NLoptData n;

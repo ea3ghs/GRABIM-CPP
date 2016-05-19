@@ -3,62 +3,111 @@
 # Line i: <network topology>
 # Line i+1: x;y;...;z;  <initial pivot>
 
+#outputfilter0
+231032
+
+#outputfilter1
+2103
+
+#outputfilter2
+210303
+
+#outputfilter3
+23103
+
+#outputfilter4
+21032
+
+#outputfilter5
+212
+
+#PHPLPLP
+203030
+
+#PLPHP
+3120
+
 #PCLC
 303
 
-#SLP1
+#SLP
 03
 
-#SLP2
+#SLPLP
 0303
 
-#SLP3
+#SLPLPLP
 030303
 
-#PLP1
+#PLP
 30
 
-#PLP2
+#PLPLP
 3030
 
-#PLP3
+#PLPLPLP
 303030
+
+#SHP
+12
+
+#SHPHP
+1212
+
+#SHPHPHP
+121212
+
+#PHP
+21
+
+#PHPHP
+2121
+
+#PHPHP
+212121
+
+
+#SBPBP
+0123
+
+#SBPBPBP
+013201
+
+#SBPBPBPBP
+01320123
+
+#PBPBP
+2310
+
+#PBPBPBP
+231023
+
+#PBPBPBPBP
+23102310
+
+#PHPLP
+2130
+
+#PHPLPHP
+213021
+
+#PHPLPHPLP
+213021303
+
+#PHPLP
+2030
+
+#PHPLPHP
+203020
+
+#PHPLPHPLP
+20302030
 
 #SLCL
 030
 
-#SHP1
-12
-
 #SCLC
 121
-
-#SHP2
-1212
-
-#SHP3
-121212
-
-#PHP1
-21
-
-#PHP2
-2121
-
-#PHP3
-212121
-
-#PBP3
-231023
-
-#PBP2
-2310
-
-#SBP2
-0123
-
-#SBP3
-013201
 
 #BP+L+BP
 32023
@@ -78,9 +127,6 @@
 #RES
 1231
 
-#PHPLP
-2130
-
 #BBB
 3013013
 
@@ -99,74 +145,59 @@
 #TEC+TEL
 131020
 
-#PBP4
-23102310
-
-#SBP4
-01320123
-
 #TEL+PCLC+TEL
 020303020
 
 #TEL+TEC+TEL
 020131020
 
-#PHPLP
-2130
-
-#PHPLPHP
-213021
-
-#PHPLPHPLP
-213021303
-
 #HPLPPI
 21303
 
-# Cascaded Transmission lines
+#Cascaded Transmission lines (TLTLTL)
 444
 
-# PiC-PiL
+#PiC-PiL
 313202
 
-# PiL-PiC
+#PiL-PiC
 202313
 
-# TeeL-PiC
+#TeeL-PiC
 020313
 
-# PiC-TeeL
+#PiC-TeeL
 313020
 
-# Lowpass LC ladder
+#Lowpass LC ladder
 03030
 
-# BPP3
+#BPP3
 01230123
 
-# BPS3
+#BPS3
 23012301
 
-# LPHHP
+#LPHHP
 12031203
 
-# LPHPS
+#LPHPS
 21302130
 
-# HPLPP
+#HPLPP
 03120312
 
-# HPLPS
+#HPLPS
 30213021
 
-# LPS4
+#LPS4
 30303030
 
-# LPP4
+#LPP4
 03030303
 
-# HPP
+#HPP
 12121212
 
-# HPS
+#HPS
 21212121
