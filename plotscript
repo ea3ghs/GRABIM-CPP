@@ -1,9 +1,30 @@
 source = "GRABIM.dat"
 
+########################################## TXT
+
 # S21 [dB]
-#set term png
-#set output "s21.png"
 set term dumb 
+set title "S21"
+set xlabel "frequency"
+set ylabel "S21 (dB)"
+set grid ytics lt 0 lw 1 lc rgb "#bbbbbb"
+set grid xtics lt 0 lw 1 lc rgb "#bbbbbb"
+plot source using 1:5 with lines title "";
+
+# S11 [dB]
+set term dumb 
+set title "S11"
+set xlabel "frequency"
+set ylabel "S11 (dB)"
+set grid ytics lt 0 lw 1 lc rgb "#bbbbbb"
+set grid xtics lt 0 lw 1 lc rgb "#bbbbbb"
+plot source using 1:4 with lines title "";
+
+########################################## PNG
+
+# S21 [dB]
+set term png
+set output "s21.png"
 set title "S21"
 set xlabel "frequency"
 set ylabel "S21 (dB)"
@@ -12,10 +33,10 @@ set grid xtics lt 0 lw 1 lc rgb "#bbbbbb"
 plot source using 1:3 with lines title "Grid search" linecolor rgb "red", source using 1:5 with lines title "Local optimiser" linecolor rgb "blue";
 
 
+
 # S11 [dB]
-#set term png
-#set output "s11.png"
-set term dumb 
+set term png
+set output "s11.png"
 set title "S11"
 set xlabel "frequency"
 set ylabel "S11 (dB)"
@@ -26,9 +47,9 @@ plot source using 1:2 with lines title "Grid search" linecolor rgb "red", source
 
 #Smith chart plot
 #Source: http://swigerco.com/gnuradio/phase/vna_comp/
-#set term png
-#set output "s11smith.png"
-set term dumb 
+set term png
+set output "s11smith.png"
+#set term dumb 
 set size square
 set clip
 set xtics axis nomirror

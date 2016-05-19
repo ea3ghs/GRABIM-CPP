@@ -2,6 +2,8 @@
 #include <iomanip>
 #include "GRABIM.h"
 
+float eval2;
+
 GRABIM::GRABIM()
 {
     verbose  = false;
@@ -558,6 +560,8 @@ double myfunc(const std::vector<double> &x, std::vector<double> &grad, void *n)
 
     double eval = M.CandidateEval(x_);
     //std::cout<< eval << " <= " << x_<< std::endl;
+    //cout << eval << " <= " << x_; printf("\r");
+    eval2=eval;
     return eval;
 }
 
@@ -608,7 +612,7 @@ rowvec GRABIM::LocalOptimiser(rowvec x_grid)
 
     cout << endl << "Local optimiser output:" << endl;
     nlopt::result result = opt.optimize(x, minf);
-    std::cout << "NLopt status: " << std::endl;
+    std::cout << "NLopt status: " ;
 
     //NLopt exit status
     switch(result)
@@ -638,6 +642,8 @@ rowvec GRABIM::LocalOptimiser(rowvec x_grid)
     case -5: std::cout << "Forced termination" <<std::endl;
         break;
     }
+
+    printf("!! S11=%f",eval2);
 
     rowvec x_nlopt = ones(1, dim);
     for (int i = 0; i < dim; i++)x_nlopt.at(i) = x[i];

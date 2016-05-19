@@ -1,0 +1,21 @@
+clear
+rm *.png temporal* *.sch *.dat
+set -x
+
+banner optimiza1210
+
+./a.out 6L6.s2p 50 24890e3 29700e3 212      ; gnuplot plotscript
+./a.out 6L6.s2p 50 24890e3 29700e3 2121     ; gnuplot plotscript
+./a.out 6L6.s2p 50 24890e3 29700e3 2030     ; gnuplot plotscript
+./a.out 6L6.s2p 50 24890e3 29700e3 203030   ; gnuplot plotscript
+./a.out 6L6.s2p 50 24890e3 29700e3 1212     ; gnuplot plotscript
+./a.out 6L6.s2p 50 24890e3 29700e3 3120     ; gnuplot plotscript
+./a.out 6L6.s2p 50 24890e3 29700e3 303      ; gnuplot plotscript
+./a.out 6L6.s2p 50 24890e3 29700e3 231032   ; gnuplot plotscript
+./a.out 6L6.s2p 50 24890e3 29700e3 21032    ; gnuplot plotscript
+./a.out 6L6.s2p 50 24890e3 29700e3 23103    ; gnuplot plotscript
+./a.out 6L6.s2p 50 24890e3 29700e3 2103     ; gnuplot plotscript
+
+
+
+
