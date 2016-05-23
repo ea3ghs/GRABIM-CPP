@@ -1,0 +1,6 @@
+clear
+gdb --args ./a.out 6L6.s2p 50 24890e3 29700e3 212
+
+
+
+

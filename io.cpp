@@ -27,7 +27,7 @@ int IO::exportGNUplot(GRABIM_Result Res, string filepath)
     GNUplotExport << "#freq S11(Grid search) S11(Local optimiser) S21(Grid search) S21(Local optimiser) " << endl;
     for (unsigned int i = 0; i < Res.freq.n_rows; i++)
     {//Writes frequency S11_grid[db] S11_optimiser[db] and S21[dB]
-        GNUplotExport << Res.freq.at(i)*1e-9 << " " << 20*log10(abs(Res.S11_gridsearch.at(i))) << " "
+        GNUplotExport << Res.freq.at(i)*1e-6 << " " << 20*log10(abs(Res.S11_gridsearch.at(i))) << " "
                       << 20*log10(abs(Res.S21_gridsearch.at(i))) << " " << 20*log10(abs(Res.S11_nlopt.at(i)))
                       << " " << 20*log10(abs(Res.S21_nlopt.at(i))) << " " << real(Res.S11_nlopt.at(i))
                       << " " << imag(Res.S11_nlopt.at(i)) <<endl;

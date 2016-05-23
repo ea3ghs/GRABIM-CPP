@@ -4,19 +4,19 @@ set -x
 
 banner busca50r
 
-./a.out 6L6.s2p 50  3500e3  4000e3 -1 ; gnuplot plotscript
-./a.out 6L6.s2p 50  3500e3  5500e3 -1 ; gnuplot plotscript
-./a.out 6L6.s2p 50  5300e3  7300e3 -1 ; gnuplot plotscript
-./a.out 6L6.s2p 50 10100e3 14350e3 -1 ; gnuplot plotscript
-./a.out 6L6.s2p 50 18068e3 21450e3 -1 ; gnuplot plotscript
-./a.out 6L6.s2p 50 24890e3 29700e3 -1 ; gnuplot plotscript
+./a.out 6L6.s2p 50  3500e3  4000e3 -1 NLOPT_LN_NELDERMEAD 1 temp; gnuplot plotscript
+./a.out 6L6.s2p 50  3500e3  5500e3 -1 NLOPT_LN_NELDERMEAD 1 temp; gnuplot plotscript
+./a.out 6L6.s2p 50  5300e3  7300e3 -1 NLOPT_LN_NELDERMEAD 1 temp; gnuplot plotscript
+./a.out 6L6.s2p 50 10100e3 14350e3 -1 NLOPT_LN_NELDERMEAD 1 temp; gnuplot plotscript
+./a.out 6L6.s2p 50 18068e3 21450e3 -1 NLOPT_LN_NELDERMEAD 1 temp; gnuplot plotscript
+./a.out 6L6.s2p 50 24890e3 29700e3 -1 NLOPT_LN_NELDERMEAD 1 temp; gnuplot plotscript
 
 banner busca200r
 
-./a.out 6L6.s2p 200  3500e3  4000e3 -1 ; gnuplot plotscript
-./a.out 6L6.s2p 200  3500e3  5500e3 -1 ; gnuplot plotscript
-./a.out 6L6.s2p 200  5300e3  7300e3 -1 ; gnuplot plotscript
-./a.out 6L6.s2p 200 10100e3 14350e3 -1 ; gnuplot plotscript
-./a.out 6L6.s2p 200 18068e3 21450e3 -1 ; gnuplot plotscript
-./a.out 6L6.s2p 200 24890e3 29700e3 -1 ; gnuplot plotscript
+./a.out 6L6.s2p 200  3500e3  4000e3 -1 NLOPT_LN_NELDERMEAD 1 temp; gnuplot plotscript
+./a.out 6L6.s2p 200  3500e3  5500e3 -1 NLOPT_LN_NELDERMEAD 1 temp; gnuplot plotscript
+./a.out 6L6.s2p 200  5300e3  7300e3 -1 NLOPT_LN_NELDERMEAD 1 temp; gnuplot plotscript
+./a.out 6L6.s2p 200 10100e3 14350e3 -1 NLOPT_LN_NELDERMEAD 1 temp; gnuplot plotscript
+./a.out 6L6.s2p 200 18068e3 21450e3 -1 NLOPT_LN_NELDERMEAD 1 temp; gnuplot plotscript
+./a.out 6L6.s2p 200 24890e3 29700e3 -1 NLOPT_LN_NELDERMEAD 1 temp; gnuplot plotscript
 

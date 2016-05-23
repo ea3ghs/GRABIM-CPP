@@ -161,7 +161,9 @@ int main(int argc, char *argv[])
     MatchingObject.SetLoadImpedance(inout_operations.getLoadImpedance());
     MatchingObject.SetFrequency(inout_operations.getFrequency());
     MatchingObject.setTopoScript(TopoScript_path);
+    MatchingObject.SetVerbose(1); //edu
 
+    //edu:implementar esto como una opcion --network=1234
     if(strlen(argv[5])) 
          MatchingObject.SetTopology(argv[5]); 
     else MatchingObject.SetTopology("-1");
@@ -169,10 +171,10 @@ int main(int argc, char *argv[])
     inout_operations.setLocalOptimiser(nlopt::LN_NELDERMEAD);
     inout_operations.set_qucs_sch_path(QucsSchPath);
 
-printf("\n\n\n\n!!\n!! GRABIM-CPP REV20160519\n!! https://github.com/andresmmera/GRABIM-CPP\n!!\n");
+printf("\n\n\n\n!!\n!! GRABIM-CPP REV20160520\n!! https://github.com/andresmmera/GRABIM-CPP\n!!\n");
 printf("!! [SRC:%s]--[MatchingNetwork:%s]--[LOAD:%s]\n",argv[1],argv[5],argv[2]);
 printf("!! BW: %s..%s\n",argv[3],argv[4]);
-printf("!! running GridSearch()..\n\n");
+printf("!! running GridSearch()..\n");
 
     GRABIM_Result R = MatchingObject.RunGRABIM();//Runs GRABIM. Well, this is not exactly the algorithm
     // detailed at [1] but from my point of view is functional and easier to code...

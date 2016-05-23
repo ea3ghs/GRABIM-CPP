@@ -3,6 +3,7 @@
 #include "GRABIM.h"
 
 float eval2;
+int debug=0;
 
 GRABIM::GRABIM()
 {
@@ -95,28 +96,31 @@ double GRABIM::GetThreshold()
 GRABIM_Result GRABIM::RunGRABIM()
 {
     GRABIM_Result Res;
-    if (!topology.compare("-1"))//The user did not entered any specific network, so it seems
-    {//reasonable to try some typical wideband matching network
-        rowvec Vopt;
-        string candidate;
+    if(!topology.compare("-1"))//The user did not entered any specific network, so it seems
+      {
+      //reasonable to try some typical wideband matching network
+      rowvec Vopt;
+      string candidate;
+      SearchPredefinedTopologies(Vopt, candidate);
+      topology = candidate;
+      Res.x_grid_search = Vopt;
+      }
+    else
+      {
+      //It builds an initial vector using default values 1nH for inductances, 1 pF for capacitors, 100 Ohm & lambda/4 for transmission lines
+      AutoSetInitialPivot();
+      Res.x_grid_search = GridSearch();
+      }
 
-        SearchPredefinedTopologies(Vopt, candidate);
+    cout<< "\n!! GRIDSEARCH: " << Res.x_grid_search << std::endl;
 
-        topology = candidate;
-        Res.x_grid_search = Vopt;
-    }
-    else//It builds an initial vector using default values 1nH for inductances, 1 pF for capacitors, 100 Ohm & lambda/4 for transmission lines
-    {
-        AutoSetInitialPivot();
-        Res.x_grid_search = GridSearch();
-    }
-
-    Res.grid_val = CandidateEval(Res.x_grid_search);
-    Res.x_nlopt = LocalOptimiser(Res.x_grid_search);
-    Res.nlopt_val = CandidateEval(Res.x_nlopt);
-    Res.ZS = ZS;
-    Res.ZL = ZL;
-    Res.freq = freq;
+    Res.grid_val  = CandidateEval (Res.x_grid_search); 
+    Res.x_nlopt   = LocalOptimiser(Res.x_grid_search); 
+    cout<< "\n!! LOCALSEARCH: " << Res.x_nlopt << std::endl;
+    Res.nlopt_val = CandidateEval (Res.x_nlopt);       
+    Res.ZS        = ZS;
+    Res.ZL        = ZL;
+    Res.freq      = freq;
 
     //Initialize S param vectors
     Res.S11_gridsearch=cx_vec(freq,freq);
@@ -221,14 +225,14 @@ rowvec GRABIM::GridSearch()
         uvec v_find = find(f_xkq < best_candidate+1e-6);
         int imin = v_find.at(0);
 
-        if (verbose)std::cout << "BEST CANDIDATE "<< i << ": " << xkq.row(imin) << " => " << best_candidate << std::endl;
+        if (verbose)std::cout << "BEST CANDIDATE "<< i << ": " << xkq.row(imin) << " => " << best_candidate;
 
 
         if (best_candidate < best.min() - 1e-3)
         {
             best << best_candidate << 0 << 0 << 0 << endr;//Prepare best for new hypercube cycle
             xk = xkq.row(imin);//Set new pivot
-            xk = InspectCandidate(xk);
+            //xk = InspectCandidate(xk);  //edu
             i = -1;//New pivot
             if (verbose) std::cout << "New pivot: " << xk << std::endl;
             continue;
@@ -258,7 +262,7 @@ rowvec GRABIM::GridSearch()
                 if (FXK.min() < best.min())
                 {
                     xk = XKQ.row(imin);
-                    xk = InspectCandidate(xk);
+                    //xk = InspectCandidate(xk); //edu
                     if (verbose)std::cout << "=> " << xk << ": " << FXK.min()<< std::endl;
                     i=-1;
                 }
@@ -559,8 +563,8 @@ double myfunc(const std::vector<double> &x, std::vector<double> &grad, void *n)
     for (unsigned int i = 0; i < x.size(); i++) x_.at(i) = x[i];
 
     double eval = M.CandidateEval(x_);
-    //std::cout<< eval << " <= " << x_<< std::endl;
-    //cout << eval << " <= " << x_; printf("\r");
+    //std::cout<< eval << " <= " << x_<< std::endl; //edu
+    //cout << eval << " <= " << x_; printf("\r");   //edu
     eval2=eval;
     return eval;
 }
